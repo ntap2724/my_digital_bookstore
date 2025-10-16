@@ -1,15 +1,7 @@
-﻿{
-    "settings":  {
-                     "dart.flutterSdkPath":  "C:/Users/phong/flutter/flutter",
-                     "dart.projects":  [
-                                           "frontend"
-                                       ],
-                     "dart.sdkPath":  "C:/Users/phong/flutter/flutter/bin/cache/dart-sdk",
-                     "dart.projectSearchDepth":  4
-                 },
-    "folders":  [
-                    {
-                        "path":  "."
-                    }
-                ]
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ]
 }
