@@ -20,9 +20,7 @@ class PrivacyPage extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 8),
-              Text(
-                'Nội dung sẽ được cập nhật sau.',
-              ),
+              Text('Nội dung sẽ được cập nhật sau.'),
             ],
           ),
         ),
@@ -30,4 +28,3 @@ class PrivacyPage extends StatelessWidget {
     );
   }
 }
-

@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Laravel\Passport\Passport;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -16,12 +16,6 @@ class AuthServiceProvider extends ServiceProvider
         // 'App\\Models\\Model' => 'App\\Policies\\ModelPolicy',
     ];
 
-    public function register(): void
-    {
-        // Ensure Passport knows where to store/load keys before any command runs
-        Passport::loadKeysFrom(storage_path());
-    }
-
     /**
      * Register any authentication / authorization services.
      */
@@ -29,8 +23,8 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // Configure token expirations here if desired
-        // Passport::tokensExpireIn(now()->addDays(15));
-        // Passport::refreshTokensExpireIn(now()->addDays(30));
+        Gate::define('admin', static function ($user): bool {
+            return (string) ($user->role ?? 'user') === 'admin';
+        });
     }
 }

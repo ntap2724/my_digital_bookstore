@@ -162,9 +162,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
         if (lower.contains('email') && lower.contains('already been taken')) {
           msg = context.l10n.emailAlreadyTaken;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
       if (!mounted) return;
@@ -479,8 +479,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             onChanged: (v) =>
                                 setState(() => _acceptedTerms = v ?? false),
                             dense: true,
-                            visualDensity:
-                                const VisualDensity(horizontal: -4, vertical: -4),
+                            visualDensity: const VisualDensity(
+                              horizontal: -4,
+                              vertical: -4,
+                            ),
                             contentPadding: EdgeInsets.zero,
                             controlAffinity: ListTileControlAffinity.leading,
                             title: Wrap(
@@ -494,13 +496,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   t.tosShort,
                                   inline: true,
                                   padding: EdgeInsets.zero,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                       ),
                                   onPressed: () =>
                                       Navigator.of(context).pushNamed('/terms'),
@@ -513,16 +513,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   t.privacyShort,
                                   inline: true,
                                   padding: EdgeInsets.zero,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                       ),
-                                  onPressed: () =>
-                                      Navigator.of(context).pushNamed('/privacy'),
+                                  onPressed: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/privacy'),
                                 ),
                               ],
                             ),

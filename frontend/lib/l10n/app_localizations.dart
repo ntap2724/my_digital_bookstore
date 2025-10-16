@@ -94,6 +94,9 @@ class AppLocalizations {
   String get sending => _t('sending');
   String get sendLink => _t('sendLink');
   String get forgotInstruction => _t('forgotInstruction');
+  String get verifyEmail => _t('verifyEmail');
+  String get resetPassword => _t('resetPassword');
+  String get forgotInstructionStep2 => _t('forgotInstructionStep2');
   String get haveAccount => _t('haveAccount');
   String get noAccount => _t('noAccount');
   String get loggingIn => _t('loggingIn');
@@ -178,6 +181,8 @@ class AppLocalizations {
   String get confirmRemoveTitle => _t('confirmRemoveTitle');
   String get confirmLogoutMessage => _t('confirmLogoutMessage');
   String get switchAccount => _t('switchAccount');
+  String switchAccountSuccess(String email) =>
+      _fmt('switchAccountSuccess', {'email': email});
 
   // ---- Dangerous actions ----
   String get deleteAccountSuccess => _t('deleteAccountSuccess');
@@ -191,6 +196,228 @@ class AppLocalizations {
   String get stay => _t('stay');
   String get profileUpdated => _t('profileUpdated');
 
+  // ---- Catalog & Books ----
+  String get catalog => _t('catalog');
+  String get catalogSubtitle => _t('catalogSubtitle');
+  String get bookExplorerTitle => _t('bookExplorerTitle');
+  String get searchBooksHint => _t('searchBooksHint');
+  String get categories => _t('categories');
+  String get authors => _t('authors');
+  String get books => _t('books');
+  String get viewAll => _t('viewAll');
+  String get catalogEmpty => _t('catalogEmpty');
+  String bookPrice(String credit) => _fmt('bookPrice', {'credit': credit});
+  String bookAvailableCopies(String count) =>
+      _fmt('bookAvailableCopies', {'count': count});
+  String get bookOutOfStock => _t('bookOutOfStock');
+  String get bookNoDescription => _t('bookNoDescription');
+  String get bookAlreadyOwned => _t('bookAlreadyOwned');
+  String get bookAuthors => _t('bookAuthors');
+  String get bookCategory => _t('bookCategory');
+  String get bookCategoryAll => _t('bookCategoryAll');
+  String get bookCategoryLabel => _t('bookCategoryLabel');
+  String get bookStatusDraft => _t('bookStatusDraft');
+  String get bookStatusPublished => _t('bookStatusPublished');
+  String get bookStatusArchived => _t('bookStatusArchived');
+  String get bookAdd => _t('bookAdd');
+  String get bookColumnIndex => _t('bookColumnIndex');
+  String get bookColumnTitle => _t('bookColumnTitle');
+  String get bookColumnPrice => _t('bookColumnPrice');
+  String get bookColumnCopies => _t('bookColumnCopies');
+  String get bookColumnStatus => _t('bookColumnStatus');
+  String get bookColumnCategory => _t('bookColumnCategory');
+  String get bookColumnActions => _t('bookColumnActions');
+  String get bookListEmpty => _t('bookListEmpty');
+  String get bookNoResults => _t('bookNoResults');
+  String get bookSearchLabel => _t('bookSearchLabel');
+  String get bookSearchHint => _t('bookSearchHint');
+  String get bookStatusFilter => _t('bookStatusFilter');
+  String get bookStatusAll => _t('bookStatusAll');
+  String get bookCategoryUnassigned => _t('bookCategoryUnassigned');
+  String get bookCreateSuccess => _t('bookCreateSuccess');
+  String get bookUpdateSuccess => _t('bookUpdateSuccess');
+  String get bookEdit => _t('bookEdit');
+  String get bookDelete => _t('bookDelete');
+  String get bookDeleteTitle => _t('bookDeleteTitle');
+  String bookDeleteMessage(String title) =>
+      _fmt('bookDeleteMessage', {'title': title});
+  String get bookDeleteAction => _t('bookDeleteAction');
+  String get bookDeleteSuccess => _t('bookDeleteSuccess');
+  String get bookDeleteInProgress => _t('bookDeleteInProgress');
+  String get bookTitleLabel => _t('bookTitleLabel');
+  String get bookTitleRequired => _t('bookTitleRequired');
+  String get bookSlugLabel => _t('bookSlugLabel');
+  String get bookSubtitleLabel => _t('bookSubtitleLabel');
+  String get bookDescriptionLabel => _t('bookDescriptionLabel');
+  String get bookCreditPriceLabel => _t('bookCreditPriceLabel');
+  String get bookCreditPriceRequired => _t('bookCreditPriceRequired');
+  String get bookCreditPriceInvalid => _t('bookCreditPriceInvalid');
+  String get bookAvailableCopiesLabel => _t('bookAvailableCopiesLabel');
+  String get bookAvailableCopiesRequired =>
+      _t('bookAvailableCopiesRequired');
+  String get bookAvailableCopiesInvalid =>
+      _t('bookAvailableCopiesInvalid');
+  String get bookStatusLabel => _t('bookStatusLabel');
+  String get bookCategoryNone => _t('bookCategoryNone');
+  String get bookAuthorsEmpty => _t('bookAuthorsEmpty');
+  String get bookIsbnLabel => _t('bookIsbnLabel');
+  String get bookLanguageLabel => _t('bookLanguageLabel');
+  String get bookCoverUrlLabel => _t('bookCoverUrlLabel');
+  String get bookFileUrlLabel => _t('bookFileUrlLabel');
+  String get bookPublishedAtLabel => _t('bookPublishedAtLabel');
+  String get bookFormUnexpectedError => _t('bookFormUnexpectedError');
+  String get bookFormCreateTitle => _t('bookFormCreateTitle');
+  String bookFormEditTitle(String title) =>
+      _fmt('bookFormEditTitle', {'title': title});
+  String get bookFormCreateAction => _t('bookFormCreateAction');
+  String get bookFormUpdateAction => _t('bookFormUpdateAction');
+  String get bookSortLabel => _t('bookSortLabel');
+  String get bookSortRecommended => _t('bookSortRecommended');
+  String get bookSortNameAZ => _t('bookSortNameAZ');
+  String get bookSortNameZA => _t('bookSortNameZA');
+  String get bookSortPriceLowHigh => _t('bookSortPriceLowHigh');
+  String get bookSortPriceHighLow => _t('bookSortPriceHighLow');
+  String get bookSortRatingHighLow => _t('bookSortRatingHighLow');
+  String get bookSortRatingLowHigh => _t('bookSortRatingLowHigh');
+  String get bookOwnedTag => _t('bookOwnedTag');
+  String get bookOwnedInfo => _t('bookOwnedInfo');
+  String get walletTopUp => _t('walletTopUp');
+  String get walletTopUpRequest => _t('walletTopUpRequest');
+  String get walletTopUpAmountLabel => _t('walletTopUpAmountLabel');
+  String get walletTopUpAmountInvalid => _t('walletTopUpAmountInvalid');
+  String get walletTopUpNoteLabel => _t('walletTopUpNoteLabel');
+  String get walletTopUpSubmit => _t('walletTopUpSubmit');
+  String get walletTopUpSuccess => _t('walletTopUpSuccess');
+  String get walletTopUpRequests => _t('walletTopUpRequests');
+  String get walletTopUpStatusPending => _t('walletTopUpStatusPending');
+  String get walletTopUpStatusApproved => _t('walletTopUpStatusApproved');
+  String get walletTopUpStatusRejected => _t('walletTopUpStatusRejected');
+  String get walletTopUpNoRequests => _t('walletTopUpNoRequests');
+  String get walletTopUpDecisionNote => _t('walletTopUpDecisionNote');
+  String get walletTopUpApprove => _t('walletTopUpApprove');
+  String get walletTopUpReject => _t('walletTopUpReject');
+  String get walletTopUpApproveSuccess => _t('walletTopUpApproveSuccess');
+  String get walletTopUpRejectSuccess => _t('walletTopUpRejectSuccess');
+  String get bookRatingSummary => _t('bookRatingSummary');
+  String bookRatingCount(int count) =>
+      _fmt('bookRatingCount', {'count': count.toString()});
+  String get bookReviewsTitle => _t('bookReviewsTitle');
+  String get bookNoReviews => _t('bookNoReviews');
+  String get bookReviewAnonymous => _t('bookReviewAnonymous');
+  String get bookReviewComposerTitle => _t('bookReviewComposerTitle');
+  String get bookReviewRatingLabel => _t('bookReviewRatingLabel');
+  String get bookReviewRatingRequired => _t('bookReviewRatingRequired');
+  String get bookReviewCommentLabel => _t('bookReviewCommentLabel');
+  String get bookReviewCommentHint => _t('bookReviewCommentHint');
+  String get bookReviewSubmitButton => _t('bookReviewSubmitButton');
+  String get bookReviewUpdateButton => _t('bookReviewUpdateButton');
+  String get bookReviewSubmitSuccess => _t('bookReviewSubmitSuccess');
+  String get bookReviewLoginRequired => _t('bookReviewLoginRequired');
+
+  // ---- Users ----
+  String get users => _t('users');
+  String get userSearchLabel => _t('userSearchLabel');
+  String get userSearchHint => _t('userSearchHint');
+  String get userRoleFilter => _t('userRoleFilter');
+  String get userRoleAll => _t('userRoleAll');
+  String get userRoleAdmin => _t('userRoleAdmin');
+  String get userRoleUser => _t('userRoleUser');
+  String userRoleLabel(String role) => _fmt('userRoleLabel', {'role': role});
+  String userCreatedAt(String date) => _fmt('userCreatedAt', {'date': date});
+  String get usersEmpty => _t('usersEmpty');
+  String get userColumnIndex => _t('userColumnIndex');
+  String get userColumnEmail => _t('userColumnEmail');
+  String get userColumnName => _t('userColumnName');
+  String get userColumnRole => _t('userColumnRole');
+  String get userColumnDob => _t('userColumnDob');
+  String get userColumnBalance => _t('userColumnBalance');
+  String get userColumnActions => _t('userColumnActions');
+  String get userWalletMissing => _t('userWalletMissing');
+  String get userWalletLoad => _t('userWalletLoad');
+  String get userWalletManage => _t('userWalletManage');
+  String get userWalletRefresh => _t('userWalletRefresh');
+  String get userDeleteTitle => _t('userDeleteTitle');
+  String userDeleteMessage(String email) =>
+      _fmt('userDeleteMessage', {'email': email});
+  String get userDeleteConfirm => _t('userDeleteConfirm');
+  String get userDeleteAction => _t('userDeleteAction');
+  String get userDeleteInProgress => _t('userDeleteInProgress');
+  String get userDeleteSuccess => _t('userDeleteSuccess');
+  String get userDeleteFailure => _t('userDeleteFailure');
+  String get userDeleteDisabled => _t('userDeleteDisabled');
+
+  // ---- Wallet ----
+  String get wallet => _t('wallet');
+  String walletBalance(String credit) =>
+      _fmt('walletBalance', {'credit': credit});
+  String get walletTransactions => _t('walletTransactions');
+  String get walletNoTransactions => _t('walletNoTransactions');
+  String get walletsEmpty => _t('walletsEmpty');
+  String walletUpdatedAt(String date) =>
+      _fmt('walletUpdatedAt', {'date': date});
+  String creditUnit(String value) => _fmt('creditUnit', {'value': value});
+  String get walletAdjust => _t('walletAdjust');
+  String get walletAdjustAmount => _t('walletAdjustAmount');
+  String get walletAdjustType => _t('walletAdjustType');
+  String get walletAdjustNote => _t('walletAdjustNote');
+  String get walletAdjustSuccess => _t('walletAdjustSuccess');
+  String get walletAdjustFailed => _t('walletAdjustFailed');
+  String get transactionTypeCredit => _t('transactionTypeCredit');
+  String get transactionTypeDebit => _t('transactionTypeDebit');
+  String get transactionTypeAdjustment => _t('transactionTypeAdjustment');
+
+  // ---- Orders ----
+  String get orders => _t('orders');
+  String get orderHistory => _t('orderHistory');
+  String orderId(int id) => _fmt('orderId', {'id': id.toString()});
+  String get orderStatusPending => _t('orderStatusPending');
+  String get orderStatusCompleted => _t('orderStatusCompleted');
+  String get orderStatusCancelled => _t('orderStatusCancelled');
+  String orderTotal(String credit) => _fmt('orderTotal', {'credit': credit});
+  String orderPlacedAt(String date) => _fmt('orderPlacedAt', {'date': date});
+  String orderItemLine(String title, String qty, String credits) =>
+      _fmt('orderItemLine', {'title': title, 'qty': qty, 'credits': credits});
+  String get orderNoItems => _t('orderNoItems');
+  String get orderEmpty => _t('orderEmpty');
+
+  // ---- Cart ----
+  String get cart => _t('cart');
+  String get cartEmpty => _t('cartEmpty');
+  String get cartCheckout => _t('cartCheckout');
+  String get cartCheckoutSuccess => _t('cartCheckoutSuccess');
+  String get cartCheckoutFailed => _t('cartCheckoutFailed');
+  String get cartUpdateFailed => _t('cartUpdateFailed');
+  String get cartAlreadyContains => _t('cartAlreadyContains');
+  String get addToCart => _t('addToCart');
+  String get addedToCart => _t('addedToCart');
+  String get viewCart => _t('viewCart');
+  String get quantity => _t('quantity');
+
+  // ---- Library ----
+  String get myBooks => _t('myBooks');
+  String get myBooksSubtitle => _t('myBooksSubtitle');
+  String get myBooksEmpty => _t('myBooksEmpty');
+  String myBooksLastPurchased(String date) =>
+      _fmt('myBooksLastPurchased', {'date': date});
+  String myBooksLastOpened(String date) =>
+      _fmt('myBooksLastOpened', {'date': date});
+  String get openBook => _t('openBook');
+
+  // ---- Actions / Misc ----
+  String get purchase => _t('purchase');
+  String get purchaseWithCredits => _t('purchaseWithCredits');
+  String get notEnoughCredits => _t('notEnoughCredits');
+  String get loading => _t('loading');
+  String get tryAgain => _t('tryAgain');
+  String get adminPanel => _t('adminPanel');
+  String get adminTabUsers => _t('adminTabUsers');
+  String get adminTabBooks => _t('adminTabBooks');
+  String get confirm => _t('confirm');
+  String get close => _t('close');
+  String get details => _t('details');
+  String get filter => _t('filter');
+  String get clear => _t('clear');
+  String lastUpdated(String date) => _fmt('lastUpdated', {'date': date});
   // ---- Error texts ----
   String get errorLoadingInfo => _t('errorLoadingInfo');
 }

@@ -1,0 +1,277 @@
+appName	My Flutter App
+settings	Settings
+view	View
+welcome	Welcome
+initializing	Initializing...
+home	Home
+refresh	Refresh
+retry	Retry
+noUserData	No user data available
+rawData	Raw Data
+drawerSettings	Settings
+drawerLogout	Log out
+errorPrefix	Error: {message}
+helloUser	Hello, {name}!
+emailLabel	Email: {email}
+linkSentTo	A reset link was sent to {email}
+confirmRemoveMessage	Remove account {email} from this device?
+login	Login
+register	Register
+loginSuccess	Logged in successfully
+loginFailed	Login failed
+invalidCredentials	Wrong password!
+emailNotFound	Email does not exist
+signInWithAnotherEmail	Sign in with another email
+continueAction	Continue
+forgotPassword	Forgot password?
+sending	Sending...
+sendLink	Send reset link
+forgotInstruction	Enter your email address to receive a password reset link.
+haveAccount	Already have an account? 
+noAccount	Don't have an account? 
+loggingIn	Logging in...
+email	Email
+emailRequired	Email is required
+emailInvalid	Invalid Email
+password	Password
+passwordRequired	Password is required
+showPassword	Show password
+hidePassword	Hide password
+fullName	Full name
+fullNameHint	Your full name
+fullNameRequired	Full name is required
+fullNameTooShort	Full name is too short
+phone	Phone
+phoneHint	+84 912 345 678
+phoneRequired	Phone is required
+phoneInvalid	Phone number is invalid
+dateOfBirth	Date of birth
+selectDate	Select date
+gender	Gender
+male	Male
+female	Female
+other	Other
+genderRequired	Please select your gender
+confirmPassword	Confirm password
+confirmPasswordRequired	Please confirm your password
+confirmPasswordMismatch	Passwords don't match
+confirmPasswordMatch	Passwords match
+passwordNotStrong	Password is not strong enough
+passwordRuleLen	At least 8 characters
+passwordRuleUpper	Contains an uppercase letter (A-Z)
+passwordRuleLower	Contains a lowercase letter (a-z)
+passwordRuleDigit	Contains a digit (0-9)
+passwordRuleSpecial	Contains a special character (!@#...)
+passwordOk	Strong password
+dobRequired	Date of birth is required
+ageRequirement	You must be at least 13 years old
+language	Language
+vietnamese	Tiếng Việt
+english	English
+darkMode	Dark mode
+color	Color
+fontSize	Font size
+fontSmall	Small
+fontNormal	Normal
+fontLarge	Large
+changeInfoTitle	Update profile
+changePassword	Change password
+tosShort	Terms
+privacyShort	Privacy
+deleteAccount	Delete account
+deleteAccountWarning	This action will permanently delete your account from our system and cannot be undone. Do you want to continue?
+deleteAccountSuccess	Your account has been deleted successfully.
+deleteAccountFailed	Failed to delete the account.
+agreePrefix	I agree to the 
+and	 and 
+registerSuccess	Registration successful
+registerFailed	Registration failed
+emailAlreadyTaken	Email is already registered.
+registerTitle	Create account
+registerSubtitle	Fill in the information below to get started
+changePasswordTitle	Change password
+currentPassword	Current password
+newPassword	New password
+confirmNewPassword	Confirm new password
+passwordMustDiffer	New password must be different
+passwordChanged	Password changed successfully
+manageAccounts	Manage accounts
+noAccounts	No accounts
+active	Active
+remove	Remove
+cancel	Cancel
+addAccount	Add account
+confirmRemoveTitle	Remove account
+confirmLogoutMessage	You will be logged out to add a new account. Continue?
+switchAccount	Switch account
+switchAccountSuccess	Switch to account {email} successfully
+saveChanges	Save changes
+unsavedChangesTitle	Unsaved changes
+unsavedChangesMessage	You have unsaved changes. Do you want to discard them?
+discard	Discard
+stay	Stay
+profileUpdated	Profile updated successfully
+errorLoadingInfo	Error loading information
+verifyEmail	Verify email
+resetPassword	Reset password
+forgotInstructionStep2	Email found. Enter a new password and confirm it.
+catalog	Catalog
+catalogSubtitle	Discover digital books and authors
+searchBooksHint	Search books...
+categories	Categories
+authors	Authors
+books	Books
+viewAll	View all
+wallet	Wallet
+walletBalance	Balance: {credit}
+walletTransactions	Transactions
+walletNoTransactions	No transactions yet
+orders	Orders
+orderHistory	Order history
+orderId	Order #{id}
+orderStatusPending	Pending
+orderStatusCompleted	Completed
+orderStatusCancelled	Cancelled
+orderTotal	Total: {credit} credits
+orderPlacedAt	Placed at {date}
+orderNoItems	This order does not contain any books
+orderEmpty	You have no orders yet
+cart	Cart
+cartEmpty	Your cart is empty. Add some books to get started.
+cartCheckout	Checkout
+cartCheckoutSuccess	Thanks! Your purchase is complete.
+cartCheckoutFailed	We couldn't complete your purchase.
+cartUpdateFailed	We couldn't update the cart. Please try again.
+addToCart	Add to cart
+addedToCart	Added to cart
+viewCart	View cart
+quantity	Quantity
+myBooks	My books
+myBooksSubtitle	Books you've purchased
+myBooksEmpty	You haven't purchased any books yet.
+myBooksLastPurchased	Last purchased: {date}
+myBooksLastOpened	Last opened: {date}
+openBook	Open book
+purchase	Purchase
+purchaseWithCredits	Purchase with credits
+notEnoughCredits	Not enough credits
+loading	Loading...
+tryAgain	Try again
+creditUnit	{value} credits
+transactionTypeCredit	Credit
+transactionTypeDebit	Debit
+transactionTypeAdjustment	Adjustment
+walletUpdatedAt	Last updated at: {date}
+lastUpdated	Last updated: {date}
+bookPrice	Price: {credit} credits
+bookAvailableCopies	{count} copies available
+bookOutOfStock	Out of stock
+bookNoDescription	No description available.
+bookAuthors	Authors
+bookCategory	Category
+bookStatusDraft	Draft
+bookStatusPublished	Published
+bookStatusArchived	Archived
+bookAdmin	Manage books
+bookSearchLabel	Search books
+bookSearchHint	Search by title or author
+bookStatusFilter	Status
+bookStatusAll	All statuses
+bookCategoryFilter	Category
+bookCategoryAll	All categories
+bookCreate	Add book
+bookEdit	Edit book
+bookDelete	Delete book
+bookDeleteConfirm	Delete this book?
+bookDeleteSuccess	Book deleted.
+bookSaveSuccess	Book saved.
+bookNoResults	No books found.
+bookTitleLabel	Title
+bookSubtitleLabel	Subtitle
+bookDescriptionLabel	Description
+bookCreditPriceLabel	Credit price
+bookAvailableCopiesLabel	Available copies
+bookStatusLabel	Status
+bookCategoryLabel	Category
+bookAuthorsLabel	Authors
+bookCoverUrlLabel	Cover image URL
+bookFileUrlLabel	File URL
+bookTagsLabel	Tags (comma separated)
+bookActions	Actions
+bookCancel	Cancel
+bookSave	Save
+adminPanel	Admin
+walletTopUp	Top up credits
+walletTopUpRequest	Send top-up request
+walletTopUpAmountLabel	Amount
+walletTopUpAmountInvalid	Enter an amount greater than zero.
+walletTopUpNoteLabel	Note (optional)
+walletTopUpSubmit	Submit request
+walletTopUpSuccess	Your request has been sent.
+walletTopUpRequests	Top-up requests
+walletTopUpStatusPending	Pending
+walletTopUpStatusApproved	Approved
+walletTopUpStatusRejected	Rejected
+walletTopUpNoRequests	No top-up requests yet.
+walletTopUpDecisionNote	Decision note (optional)
+walletTopUpApprove	Approve
+walletTopUpReject	Reject
+walletTopUpApproveSuccess	Top-up request approved.
+walletTopUpRejectSuccess	Top-up request rejected.
+walletAdjust	Adjust wallet
+walletAdjustSuccess	Wallet updated successfully
+walletAdjustFailed	Failed to update wallet
+walletAdjustAmount	Amount
+walletAdjustType	Transaction type
+walletAdjustNote	Note
+confirm	Confirm
+close	Close
+details	Details
+filter	Filter
+clear	Clear
+catalogEmpty	No books available right now
+walletsEmpty	No wallets found
+orderItemLine	{qty} × {title} — {credits}
+bookRatingSummary	Ratings & reviews
+bookRatingCount	{count} ratings
+bookReviewsTitle	User reviews
+bookNoReviews	No reviews yet
+bookReviewAnonymous	Anonymous
+bookReviewComposerTitle	Your review
+bookReviewRatingLabel	Your rating
+bookReviewRatingRequired	Please choose a rating.
+bookReviewCommentLabel	Your comment
+bookReviewCommentHint	Share your thoughts (optional)
+bookReviewSubmitButton	Submit review
+bookReviewUpdateButton	Update review
+bookReviewSubmitSuccess	Thanks! Your review has been saved.
+bookReviewLoginRequired	Log in to write a review.
+users	Users
+userSearchLabel	Search users
+userSearchHint	Search by name or email
+userRoleFilter	Role
+userRoleAll	All roles
+userRoleAdmin	Admin
+userRoleUser	User
+userRoleLabel	Role: {role}
+userCreatedAt	Created at {date}
+usersEmpty	No users found
+userColumnIndex	No.
+userColumnEmail	Email
+userColumnName	Name
+userColumnRole	Role
+userColumnDob	Date of birth
+userColumnBalance	Credit balance
+userColumnActions	Actions
+userWalletMissing	No wallet
+userWalletLoad	Load wallet
+userWalletManage	Manage wallet
+userWalletRefresh	Refresh
+userDeleteTitle	Delete account
+userDeleteMessage	Delete user {email}? This action cannot be undone.
+userDeleteConfirm	Delete
+userDeleteAction	Delete account
+userDeleteInProgress	Deleting...
+userDeleteSuccess	Account deleted
+userDeleteFailure	Failed to delete account
+userDeleteDisabled	Cannot delete admin accounts

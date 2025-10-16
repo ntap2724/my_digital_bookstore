@@ -94,8 +94,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         await AuthService.instance.clearSavedTokenForActiveAccount();
       } catch (_) {}
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.l10n.passwordChanged)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.passwordChanged)));
       Navigator.of(context).pop();
     } else {
       final msg = res.message ?? context.l10n.errorPrefix('');
@@ -164,25 +165,29 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                         return null;
                       },
                     ),
-                    Builder(builder: (context) {
-                      final theme = Theme.of(context);
-                      final showChecklist = _newFocus.hasFocus;
-                      final hasText = _newCtrl.text.isNotEmpty;
-                      final showPositive = hasText &&
-                          !showChecklist &&
-                          _isStrong(_newCtrl.text) &&
-                          _newCtrl.text != _currentCtrl.text;
-                      if (!showChecklist && !showPositive) {
-                        return const SizedBox(height: 16);
-                      }
-                      final okStyle = helperTextStyle(context)
-                          .copyWith(color: theme.colorScheme.primary);
-                      return FieldHelper(
-                        child: showChecklist
-                            ? _passwordChecklist(_newCtrl.text, t)
-                            : Text(t.passwordOk, style: okStyle),
-                      );
-                    }),
+                    Builder(
+                      builder: (context) {
+                        final theme = Theme.of(context);
+                        final showChecklist = _newFocus.hasFocus;
+                        final hasText = _newCtrl.text.isNotEmpty;
+                        final showPositive =
+                            hasText &&
+                            !showChecklist &&
+                            _isStrong(_newCtrl.text) &&
+                            _newCtrl.text != _currentCtrl.text;
+                        if (!showChecklist && !showPositive) {
+                          return const SizedBox(height: 16);
+                        }
+                        final okStyle = helperTextStyle(
+                          context,
+                        ).copyWith(color: theme.colorScheme.primary);
+                        return FieldHelper(
+                          child: showChecklist
+                              ? _passwordChecklist(_newCtrl.text, t)
+                              : Text(t.passwordOk, style: okStyle),
+                        );
+                      },
+                    ),
                     AppFormField(
                       controller: _confirmCtrl,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -211,16 +216,23 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       },
                       onFieldSubmitted: (_) => _submit(),
                     ),
-                    Builder(builder: (context) {
-                      final ok =
-                          _confirmCtrl.text.isNotEmpty && _confirmCtrl.text == _newCtrl.text;
-                      if (!ok) return const SizedBox(height: 16);
-                      final style = helperTextStyle(context)
-                          .copyWith(color: Theme.of(context).colorScheme.primary);
-                      return FieldHelper(
-                        child: Text(context.l10n.confirmPasswordMatch, style: style),
-                      );
-                    }),
+                    Builder(
+                      builder: (context) {
+                        final ok =
+                            _confirmCtrl.text.isNotEmpty &&
+                            _confirmCtrl.text == _newCtrl.text;
+                        if (!ok) return const SizedBox(height: 16);
+                        final style = helperTextStyle(context).copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        );
+                        return FieldHelper(
+                          child: Text(
+                            context.l10n.confirmPasswordMatch,
+                            style: style,
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 4),
                     PrimaryButton.icon(
                       onPressed: _submitting ? null : _submit,

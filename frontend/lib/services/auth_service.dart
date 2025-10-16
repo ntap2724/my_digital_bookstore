@@ -1,8 +1,8 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:my_flutter_app/config.dart';
 import 'package:my_flutter_app/services/navigation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +12,13 @@ class LoginResult {
   final String? accessToken;
   final String? message;
   LoginResult({required this.success, this.accessToken, this.message});
+}
+
+class EmailLookupResult {
+  final bool exists;
+  final String? name;
+
+  const EmailLookupResult({required this.exists, this.name});
 }
 
 class AccountInfo {
@@ -58,7 +65,7 @@ class AuthService extends ChangeNotifier {
 
   Uri _uri(String path) => Uri.parse('${AppConfig.apiBaseUrl}$path');
 
-  Future<bool> emailExists(String email) async {
+  Future<EmailLookupResult> emailExists(String email) async {
     final uri = _uri(
       '${AppConfig.emailExistsEndpoint}?email=${Uri.encodeComponent(email)}',
     );
@@ -69,12 +76,27 @@ class AuthService extends ChangeNotifier {
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final data = _decodeJson(resp.body);
         final ex = data['exists'];
-        if (ex is bool) return ex;
-        if (ex is String) return ex.toLowerCase() == 'true' || ex == '1';
-        if (ex is num) return ex != 0;
+        var exists = false;
+        if (ex is bool) {
+          exists = ex;
+        } else if (ex is String) {
+          final lower = ex.toLowerCase();
+          exists = lower == 'true' || lower == '1';
+        } else if (ex is num) {
+          exists = ex != 0;
+        }
+        String? name;
+        final rawName = data['name'];
+        if (rawName is String) {
+          final trimmed = rawName.trim();
+          if (trimmed.isNotEmpty) {
+            name = trimmed;
+          }
+        }
+        return EmailLookupResult(exists: exists, name: name);
       }
     } catch (_) {}
-    return false;
+    return const EmailLookupResult(exists: false);
   }
 
   Map<String, dynamic> _decodeJson(String body) {
@@ -99,7 +121,9 @@ class AuthService extends ChangeNotifier {
     if (s == 'female' || s == 'f' || s == 'nu' || s == 'nữ' || s == 'nữ') {
       return 'female';
     }
-    if (s == 'other' || s.startsWith('khac') || s.startsWith('khác')) return 'other';
+    if (s == 'other' || s.startsWith('khac') || s.startsWith('khác')) {
+      return 'other';
+    }
     return 'other';
   }
 
@@ -186,17 +210,13 @@ class AuthService extends ChangeNotifier {
           message: 'Thiếu token trong phản hồi',
         );
       }
-      // Persist a local account entry (no token) so login badge shows the proper name
-      try {
-        await _persistLoginAccount(email: email, token: '');
-        await _updateAccountName(id: email, name: name);
-      } catch (_) {}
+      // Do not persist this account locally yet; wait until the first real login.
       // Navigate to login form after successful registration
       try {
         NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
           '/login',
           (r) => false,
-          arguments: {'email': email},
+          arguments: {'email': email, 'displayName': name},
         );
       } catch (_) {}
       return LoginResult(success: true, accessToken: token);
@@ -591,6 +611,11 @@ class AuthService extends ChangeNotifier {
     return prefs.getString('access_token');
   }
 
+  Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
+  }
+
   Future<Map<String, dynamic>?> me() async {
     final token = await getToken();
     if (token == null) return null;
@@ -723,6 +748,74 @@ class AuthService extends ChangeNotifier {
       return LoginResult(
         success: false,
         message: 'Change password failed (${resp.statusCode})',
+      );
+    }
+  }
+
+  Future<LoginResult> resetPassword({
+    required String email,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final uri = _uri('/api/reset-password');
+    http.Response resp;
+    try {
+      resp = await http
+          .post(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'password': newPassword,
+              'password_confirmation': confirmPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      return LoginResult(success: false, message: _friendlyNetworkError(e));
+    }
+
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      try {
+        final data = _decodeJson(resp.body);
+        final msg = data['message']?.toString();
+        return LoginResult(success: true, message: msg);
+      } catch (_) {
+        return LoginResult(success: true);
+      }
+    }
+
+    try {
+      final data = _decodeJson(resp.body);
+      final message = data['message']?.toString();
+      if (message != null && message.isNotEmpty) {
+        return LoginResult(success: false, message: message);
+      }
+      final errors = data['errors'];
+      if (errors is Map) {
+        for (final entry in errors.entries) {
+          final value = entry.value;
+          if (value is List && value.isNotEmpty) {
+            final msg = value.first?.toString();
+            if (msg != null && msg.isNotEmpty) {
+              return LoginResult(success: false, message: msg);
+            }
+          } else if (value is String && value.isNotEmpty) {
+            return LoginResult(success: false, message: value);
+          }
+        }
+      }
+      return LoginResult(
+        success: false,
+        message: 'Reset password failed (${resp.statusCode})',
+      );
+    } catch (_) {
+      return LoginResult(
+        success: false,
+        message: 'Reset password failed (${resp.statusCode})',
       );
     }
   }

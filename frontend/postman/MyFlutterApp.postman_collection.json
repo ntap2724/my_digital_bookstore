@@ -1,156 +1,156 @@
-{
-  "info": {
-    "name": "My Flutter App API",
-    "description": "Collection to test simple login/register/logout using form-urlencoded bodies.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Register - Form (urlencoded)",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/register",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "register" ]
-        },
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            { "key": "name", "value": "{{name}}" },
-            { "key": "email", "value": "{{email}}" },
-            { "key": "password", "value": "{{password}}" },
-            { "key": "password_confirmation", "value": "{{password}}" },
-            { "key": "phone", "value": "{{phone}}" },
-            { "key": "dob", "value": "{{dob}}" },
-            { "key": "gender", "value": "{{gender}}" },
-            { "key": "accepted_terms", "value": "{{accepted_terms}}" }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
-              "let json = {}; try { json = pm.response.json(); } catch(e) {}",
-              "const token = json.access_token || json.token || (json.data && json.data.token);",
-              "pm.expect(token, 'token missing').to.be.a('string').that.is.not.empty;",
-              "pm.environment.set('access_token', token);"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login - Form (urlencoded)",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/login",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "login" ]
-        },
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            { "key": "email", "value": "{{email}}" },
-            { "key": "password", "value": "{{password}}" }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
-              "let json = {}; try { json = pm.response.json(); } catch(e) {}",
-              "const token = json.access_token || json.token || (json.data && json.data.token);",
-              "pm.expect(token, 'token missing').to.be.a('string').that.is.not.empty;",
-              "pm.environment.set('access_token', token);"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Logout - Current Token",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
-          { "key": "Authorization", "value": "Bearer {{access_token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/logout",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "logout" ]
-        },
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": []
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Me - Get Current User",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{access_token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/user",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "user" ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Authorized (200)', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
-    }
-  ],
-  "variable": [
-    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
-    { "key": "email", "value": "test@example.com", "type": "string" },
-    { "key": "password", "value": "Password1!", "type": "string" },
-    { "key": "name", "value": "Test User", "type": "string" },
-    { "key": "phone", "value": "0912345678", "type": "string" },
-    { "key": "dob", "value": "2000-05-20", "type": "string" },
-    { "key": "gender", "value": "Nam", "type": "string" },
-    { "key": "accepted_terms", "value": "true", "type": "string" }
-  ]
-}
+﻿{
+  "info": {
+    "name": "My Flutter App API",
+    "description": "Collection to test simple login/register/logout using form-urlencoded bodies.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register - Form (urlencoded)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/register",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "register" ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "name", "value": "{{name}}" },
+            { "key": "email", "value": "{{email}}" },
+            { "key": "password", "value": "{{password}}" },
+            { "key": "password_confirmation", "value": "{{password}}" },
+            { "key": "phone", "value": "{{phone}}" },
+            { "key": "dob", "value": "{{dob}}" },
+            { "key": "gender", "value": "{{gender}}" },
+            { "key": "accepted_terms", "value": "{{accepted_terms}}" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
+              "let json = {}; try { json = pm.response.json(); } catch(e) {}",
+              "const token = json.access_token || json.token || (json.data && json.data.token);",
+              "pm.expect(token, 'token missing').to.be.a('string').that.is.not.empty;",
+              "pm.environment.set('access_token', token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login - Form (urlencoded)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/login",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "login" ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "email", "value": "{{email}}" },
+            { "key": "password", "value": "{{password}}" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
+              "let json = {}; try { json = pm.response.json(); } catch(e) {}",
+              "const token = json.access_token || json.token || (json.data && json.data.token);",
+              "pm.expect(token, 'token missing').to.be.a('string').that.is.not.empty;",
+              "pm.environment.set('access_token', token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout - Current Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/logout",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "logout" ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": []
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me - Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/user",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "user" ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Authorized (200)', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "email", "value": "test@example.com", "type": "string" },
+    { "key": "password", "value": "Password1!", "type": "string" },
+    { "key": "name", "value": "Test User", "type": "string" },
+    { "key": "phone", "value": "0912345678", "type": "string" },
+    { "key": "dob", "value": "2000-05-20", "type": "string" },
+    { "key": "gender", "value": "Nam", "type": "string" },
+    { "key": "accepted_terms", "value": "true", "type": "string" }
+  ]
+}

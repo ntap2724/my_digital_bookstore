@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
+import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
 import 'package:my_flutter_app/widgets/primary_button.dart';
 
 class AccountListPage extends StatefulWidget {
@@ -46,9 +48,16 @@ class _AccountListPageState extends State<AccountListPage> {
       // Has token: activate and go home
       await AuthService.instance.setActiveAccount(id);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.switchAccount)));
+      final switchMessage = context.l10n.switchAccountSuccess(email);
+      final shouldToast = await AuthService.instance.isLoggedIn();
+      if (!mounted) return;
+      if (shouldToast &&
+          switchMessage.trim().isNotEmpty &&
+          switchMessage != 'switchAccountSuccess') {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(switchMessage)));
+      }
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false);
       return;
     }
@@ -106,6 +115,7 @@ class _AccountListPageState extends State<AccountListPage> {
     final t = context.l10n;
     return Scaffold(
       appBar: AppBar(title: Text(t.manageAccounts)),
+      drawer: const AppNavigationMenu(currentRoute: '/accounts'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _accounts.isEmpty

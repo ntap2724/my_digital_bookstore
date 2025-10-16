@@ -17,8 +17,8 @@ class PrimaryButton extends StatelessWidget {
     this.fullWidth = true,
     this.padding = const EdgeInsets.symmetric(vertical: 14),
     this.bottomSpacing = kFieldSpacing,
-  })  : icon = null,
-        label = null;
+  }) : icon = null,
+       label = null;
 
   const PrimaryButton.icon({
     super.key,
@@ -37,9 +37,7 @@ class PrimaryButton extends StatelessWidget {
       backgroundColor: scheme.primaryContainer,
       foregroundColor: scheme.onPrimaryContainer,
       padding: padding,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
   }
 
@@ -57,11 +55,16 @@ class PrimaryButton extends StatelessWidget {
             onPressed: onPressed,
             child: child ?? const SizedBox.shrink(),
           );
-    final core = fullWidth ? SizedBox(width: double.infinity, child: button) : button;
+    final core = fullWidth
+        ? SizedBox(width: double.infinity, child: button)
+        : button;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [core, SizedBox(height: bottomSpacing)],
+      children: [
+        core,
+        SizedBox(height: bottomSpacing),
+      ],
     );
   }
 }
