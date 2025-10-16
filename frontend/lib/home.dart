@@ -1,9 +1,14 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+
+import 'package:my_flutter_app/book_detail.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
+import 'package:my_flutter_app/models/book.dart';
+import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
-import 'package:my_flutter_app/widgets/primary_button.dart';
+import 'package:my_flutter_app/services/cart_service.dart';
+import 'package:my_flutter_app/services/catalog_service.dart';
+import 'package:my_flutter_app/services/order_service.dart';
+import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,65 +18,212 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Map<String, dynamic>? _user;
-  bool _loading = true;
-  String? _error;
+  static const double _bookCardInfoHeight = 140;
+  static const double _bookCoverAspectRatio = 3 / 4;
+
+  final CatalogService _catalogService = CatalogService.instance;
+  final CartService _cartService = CartService.instance;
+  final OrderService _orderService = OrderService.instance;
+
+  final Set<int> _addingToCart = <int>{};
+  final Set<int> _purchasingBooks = <int>{};
+
+  String? _displayName;
+  String? _email;
+  bool _isAdmin = false;
+  List<Book> _books = const [];
+  bool _loadingBooks = true;
+  String? _bookError;
 
   @override
   void initState() {
     super.initState();
-    _load();
-    // Listen for auth/profile changes to auto-refresh UI
-    AuthService.instance.addListener(_onAuthChanged);
-  }
-
-  void _onAuthChanged() {
-    if (!mounted || _loading) return;
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final me = await AuthService.instance.me();
-      setState(() => _user = me == null ? null : _normalizeUser(me));
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    _cartService.ensureLoaded();
+    _cartService.addListener(_handleCartChanged);
+    _loadProfile();
+    _loadBooks();
   }
 
   @override
   void dispose() {
-    AuthService.instance.removeListener(_onAuthChanged);
+    _cartService.removeListener(_handleCartChanged);
     super.dispose();
   }
 
-  Map<String, dynamic> _normalizeUser(Map<String, dynamic> u) {
-    final copy = Map<String, dynamic>.from(u);
-    final g = u['gender']?.toString();
-    if (g != null) {
-      copy['gender'] = _normGender(g);
+  Future<void> _loadProfile({bool showSpinner = true}) async {
+    AccountInfo? active;
+    Map<String, dynamic>? profile;
+
+    try {
+      active = await AuthService.instance.getActiveAccount();
+    } catch (_) {}
+
+    try {
+      profile = await AuthService.instance.me();
+    } catch (_) {}
+
+    if (!mounted) {
+      return;
     }
-    return copy;
+
+    final name = _extractName(active, profile);
+    final email = _extractEmail(active, profile);
+    final role = profile?['role']?.toString().toLowerCase();
+
+    setState(() {
+      _displayName = name;
+      _email = email;
+      _isAdmin = role == 'admin';
+    });
   }
 
-  String _normGender(String g) {
-    final s = g.trim().toLowerCase();
-    if (s == 'male' || s == 'm' || s == 'nam' || s.startsWith('nam')) return 'male';
-    if (s == 'female' || s == 'f' || s == 'nu' || s == 'nữ' || s == 'nữ' || s.startsWith('nữ')) return 'female';
-    if (s == 'other' || s == 'khac' || s == 'khác') return 'other';
-    return 'other';
+  Future<void> _loadBooks({bool showSpinner = true}) async {
+    if (mounted) {
+      setState(() {
+        _loadingBooks = true;
+        _bookError = null;
+      });
+    }
+
+    try {
+      final books = await _catalogService.getAllBooks(auth: true);
+      if (!mounted) return;
+      setState(() {
+        _books = books.take(16).toList(growable: false);
+        _bookError = null;
+        _loadingBooks = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _bookError = e.toString();
+        _loadingBooks = false;
+      });
+    }
   }
 
-  Future<void> _logout() async {
-    await AuthService.instance.logout();
+  void _handleCartChanged() {
     if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil('/accounts', (r) => false);
+    setState(() {});
+  }
+
+  String? _extractName(
+    AccountInfo? account,
+    Map<String, dynamic>? profile,
+  ) {
+    final fromAccount = account?.name;
+    if (fromAccount != null && fromAccount.trim().isNotEmpty) {
+      return fromAccount.trim();
+    }
+    final raw = profile?['name']?.toString();
+    if (raw != null && raw.trim().isNotEmpty) {
+      return raw.trim();
+    }
+    return null;
+  }
+
+  Future<void> _handleAddToCart(Book book, AppLocalizations t) async {
+    if (book.owned) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.bookAlreadyOwned)),
+      );
+      return;
+    }
+    if (_cartService.itemFor(book.id) != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.cartAlreadyContains)),
+      );
+      return;
+    }
+    if (_addingToCart.contains(book.id)) return;
+    setState(() => _addingToCart.add(book.id));
+    try {
+      await _cartService.addBook(book);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.addedToCart)));
+    } on CartItemAlreadyExistsException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.cartAlreadyContains)));
+    } on BookAlreadyOwnedException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.bookAlreadyOwned)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.cartUpdateFailed)));
+    } finally {
+      if (mounted) {
+        setState(() => _addingToCart.remove(book.id));
+      }
+    }
+  }
+
+  Future<void> _handleQuickPurchase(Book book, AppLocalizations t) async {
+    if (book.owned) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.bookAlreadyOwned)),
+      );
+      return;
+    }
+    if (_purchasingBooks.contains(book.id)) return;
+    setState(() => _purchasingBooks.add(book.id));
+    try {
+      await _orderService.placeOrder(
+        items: [
+          {'book_id': book.id, 'quantity': 1},
+        ],
+      );
+      _catalogService.markBookOwned(book.id);
+      if (_cartService.itemFor(book.id) != null) {
+        await _cartService.remove(book.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _books = _books
+            .map((b) => b.id == book.id ? b.copyWith(owned: true) : b)
+            .toList(growable: false);
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.purchaseWithCredits)));
+    } on ApiException catch (e) {
+      final message = e.message.isNotEmpty ? e.message : t.notEnoughCredits;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _purchasingBooks.remove(book.id));
+      }
+    }
+  }
+
+  String? _extractEmail(
+    AccountInfo? account,
+    Map<String, dynamic>? profile,
+  ) {
+    final fromAccount = account?.email;
+    if (fromAccount != null && fromAccount.trim().isNotEmpty) {
+      return fromAccount.trim();
+    }
+    final raw = profile?['email']?.toString();
+    if (raw != null && raw.trim().isNotEmpty) {
+      return raw.trim();
+    }
+    return null;
+  }
+
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      _loadProfile(showSpinner: false),
+      _loadBooks(showSpinner: false),
+    ]);
   }
 
   @override
@@ -80,121 +232,416 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(t.home),
-        actions: [
-          IconButton(
-            tooltip: t.refresh,
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
       ),
-      drawer: _buildDrawer(),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${t.errorLoadingInfo}:\n$_error',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                        PrimaryButton.icon(
-                          onPressed: _load,
-                          icon: const Icon(Icons.refresh),
-                          label: Text(t.retry),
-                        ),
-                  ],
-                ),
-              )
-            : _user == null
-            ? Center(child: Text(t.noUserData))
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.helloUser(_user!['name']?.toString() ?? 'User'),
-                    style: Theme.of(context).textTheme.headlineSmall,
+      drawer: const AppNavigationMenu(currentRoute: '/home'),
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildHeader(context, t),
+            const SizedBox(height: 24),
+            Text(
+              t.bookExplorerTitle,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 6),
-                  Text(t.emailLabel(_user!['email']?.toString() ?? '-')),
-                  const SizedBox(height: 20),
-                  Text(
-                    t.rawData,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Text(
-                        const JsonEncoder.withIndent('  ').convert(_user),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              t.catalogSubtitle,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 20),
+            _buildBooksSection(context, t),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDrawer() {
-    final t = context.l10n;
-    final name = _user?['name']?.toString() ?? 'User';
-    final email = _user?['email']?.toString() ?? '';
-    return Drawer(
-      child: SafeArea(
+  Widget _buildBooksSection(BuildContext context, AppLocalizations t) {
+    if (_bookError != null) {
+      return _buildErrorNotice(context, t, _bookError!);
+    }
+    if (_loadingBooks) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 48),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_books.isEmpty) {
+      return _buildEmptyState(context, t);
+    }
+    return _buildBookGrid(context, t);
+  }
+
+  Widget _buildBookGrid(BuildContext context, AppLocalizations t) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        var crossAxisCount = 1;
+        if (width >= 1100) {
+          crossAxisCount = 4;
+        } else if (width >= 820) {
+          crossAxisCount = 3;
+        } else if (width >= 560) {
+          crossAxisCount = 2;
+        }
+
+        const spacing = 16.0;
+        final availableWidth = width - spacing * (crossAxisCount - 1);
+        final itemWidth = availableWidth / crossAxisCount;
+        final cardHeight =
+            itemWidth / _bookCoverAspectRatio + _bookCardInfoHeight;
+        final childAspectRatio = itemWidth / cardHeight;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _books.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemBuilder: (context, index) =>
+              _buildBookCard(context, t, _books[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildBookCard(
+    BuildContext context,
+    AppLocalizations t,
+    Book book,
+  ) {
+    final theme = Theme.of(context);
+    final categoryName = book.category?.name;
+    final trimmedCategory = categoryName?.trim();
+    final isOwned = book.owned;
+    final isInCart = _cartService.itemFor(book.id) != null;
+    final adding = _addingToCart.contains(book.id);
+    final purchasing = _purchasingBooks.contains(book.id);
+
+    Widget buildFallbackCover() => Container(
+          color: theme.colorScheme.surfaceContainerHighest,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.menu_book_outlined,
+            size: 42,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        );
+
+    final hasCover =
+        book.coverImageUrl != null && book.coverImageUrl!.trim().isNotEmpty;
+
+    final coverImage = hasCover
+        ? Image.network(
+            book.coverImageUrl!,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return buildFallbackCover();
+            },
+            errorBuilder: (context, error, stackTrace) => buildFallbackCover(),
+          )
+        : buildFallbackCover();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        Navigator.of(context).pushNamed(
+          BookDetailPage.routeName,
+          arguments: BookDetailArgs(bookId: book.id, initial: book),
+        );
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            UserAccountsDrawerHeader(
-              accountName: Text(name),
-              accountEmail: Text(email),
-              currentAccountPicture: const CircleAvatar(
-                child: Icon(Icons.person),
-              ),
-              margin: EdgeInsets.zero,
-            ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
+            AspectRatio(
+              aspectRatio: _bookCoverAspectRatio,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.home_outlined),
-                    title: Text(t.home),
+                  coverImage,
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: _buildCategoryChip(theme, trimmedCategory),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.switch_account_outlined),
-                    title: Text(t.switchAccount),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed('/accounts');
-                    },
-                  ),
+                  if (book.owned)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: _buildOwnedChip(theme, t),
+                    ),
                 ],
               ),
             ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: Text(t.drawerSettings),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushNamed('/settings');
-              },
+            SizedBox(
+              height: _bookCardInfoHeight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            book.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 6),
+                          if (trimmedCategory != null &&
+                              trimmedCategory.isNotEmpty)
+                            Text(
+                              trimmedCategory,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      t.bookPrice(book.creditPrice.toString()),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(44),
+                            ),
+                            onPressed: adding || isOwned || isInCart
+                                ? null
+                                : () => _handleAddToCart(book, t),
+                            icon: adding
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(
+                                    isInCart
+                                        ? Icons.check_circle_outline
+                                        : Icons.add_shopping_cart_outlined,
+                                  ),
+                            label: Text(
+                              adding
+                                  ? t.loading
+                                  : isInCart
+                                      ? t.cartAlreadyContains
+                                      : t.addToCart,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(44),
+                            ),
+                            onPressed: purchasing || isOwned
+                                ? null
+                                : () => _handleQuickPurchase(book, t),
+                            icon: purchasing
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(
+                                    isOwned
+                                        ? Icons.check_circle
+                                        : Icons.shopping_cart_checkout_outlined,
+                                  ),
+                            label: Text(
+                              purchasing
+                                  ? t.loading
+                                  : isOwned
+                                      ? t.bookOwnedTag
+                                      : t.purchase,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: Text(t.drawerLogout),
-              onTap: () {
-                Navigator.of(context).pop();
-                _logout();
-              },
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(ThemeData theme, String? category) {
+    final display = category?.trim();
+    if (display == null || display.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Text(
+        display,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOwnedChip(ThemeData theme, AppLocalizations t) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            t.bookOwnedTag,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w700,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorNotice(
+    BuildContext context,
+    AppLocalizations t,
+    String message,
+  ) {
+    final theme = Theme.of(context);
+    return Card(
+      color: theme.colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.errorPrefix(message),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _loadBooks(),
+                icon: const Icon(Icons.refresh),
+                label: Text(t.tryAgain),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, AppLocalizations t) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.catalogEmpty,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              t.refresh,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppLocalizations t) {
+    final theme = Theme.of(context);
+    final rawName = _displayName?.trim() ?? '';
+    final rawEmail = _email?.trim() ?? '';
+    final label = rawName.isNotEmpty ? rawName : rawEmail;
+    final greeting = label.isNotEmpty ? t.helloUser(label) : t.welcome;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              greeting,
+              style: theme.textTheme.titleMedium,
+            ),
+            if (rawEmail.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  t.emailLabel(rawEmail),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            if (_isAdmin)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Chip(
+                  avatar: const Icon(
+                    Icons.admin_panel_settings_outlined,
+                    size: 18,
+                  ),
+                  label: Text(t.adminPanel),
+                ),
+              ),
           ],
         ),
       ),

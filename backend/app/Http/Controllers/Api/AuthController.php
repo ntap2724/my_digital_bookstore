@@ -10,6 +10,34 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function resetPassword(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email', 'exists:' . User::class],
+            'password' => [
+                'required', 'string', 'min:8', 'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/',
+            ],
+        ]);
+
+        /** @var User $user */
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        $user->password = $credentials['password'];
+        $user->tokens()->delete();
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password reset successfully.',
+        ]);
+    }
+
     public function register(Request $request)
     {
         $minDob = now()->subYears(13)->toDateString();
@@ -19,7 +47,6 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => [
                 'required', 'string', 'min:8', 'confirmed',
-                // At least 1 lowercase, 1 uppercase, 1 digit, 1 special char
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/',
             ],
             'phone' => ['required', 'string', 'regex:/^(0|\+84)(\d{9})$/'],
@@ -38,13 +65,12 @@ class AuthController extends Controller
             'terms_accepted_at' => now(),
         ]);
 
-        $tokenResult = $user->createToken('api');
-        $accessToken = $tokenResult->accessToken;
+        $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
             'user' => $user,
-            'access_token' => $accessToken,
-            'token' => $accessToken,
+            'access_token' => $token,
+            'token' => $token,
             'token_type' => 'Bearer',
         ], 201);
     }
@@ -64,22 +90,22 @@ class AuthController extends Controller
             ]);
         }
 
-        $tokenResult = $user->createToken('api');
-        $accessToken = $tokenResult->accessToken;
+        $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
             'user' => $user,
-            'access_token' => $accessToken,
-            'token' => $accessToken,
+            'access_token' => $token,
+            'token' => $token,
             'token_type' => 'Bearer',
         ]);
     }
 
     public function logout(Request $request)
     {
-        $token = $request->user()->token();
+        $token = $request->user()->currentAccessToken();
+
         if ($token) {
-            $token->revoke();
+            $token->delete();
         }
 
         return response()->json([

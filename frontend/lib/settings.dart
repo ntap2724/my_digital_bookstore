@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/settings_service.dart';
+import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
 import 'package:my_flutter_app/widgets/primary_button.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -17,6 +19,7 @@ class _SettingsPageState extends State<SettingsPage> {
   int _colorIndex = 0; // 0..3
   String _fontSize = 'normal';
   bool _loggedIn = false;
+  bool _isAdmin = false;
 
   List<Color> get _colors => SettingsController.palette;
 
@@ -34,7 +37,28 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _checkLoggedIn() async {
     final token = await AuthService.instance.getToken();
     if (!mounted) return;
-    setState(() => _loggedIn = token != null && token.isNotEmpty);
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _loggedIn = false;
+        _isAdmin = false;
+      });
+      return;
+    }
+    try {
+      final me = await AuthService.instance.me();
+      if (!mounted) return;
+      final role = me?['role']?.toString().toLowerCase();
+      setState(() {
+        _loggedIn = true;
+        _isAdmin = role == 'admin';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loggedIn = true;
+        _isAdmin = false;
+      });
+    }
   }
 
   @override
@@ -47,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
         onPressed: () {},
         child: const Icon(Icons.mic),
       ),
+      drawer: const AppNavigationMenu(currentRoute: '/settings'),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
@@ -125,7 +150,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 foregroundColor: Colors.white,
                 elevation: 0,
               ),
-              onPressed: () async {
+              onPressed: _isAdmin
+                  ? null
+                  : () async {
                 final ctx = context;
                 final ok = await showDialog<bool>(
                   context: ctx,
@@ -150,13 +177,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 );
                 if (ok != true) return;
-                final success = await AuthService.instance.deleteAccountPermanently();
+                final success = await AuthService.instance
+                    .deleteAccountPermanently();
                 if (!ctx.mounted) return;
                 if (success) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
                     SnackBar(content: Text(t.deleteAccountSuccess)),
                   );
-                  Navigator.of(ctx).pushNamedAndRemoveUntil('/login', (r) => false);
+                  Navigator.of(
+                    ctx,
+                  ).pushNamedAndRemoveUntil('/login', (r) => false);
                 } else {
                   ScaffoldMessenger.of(ctx).showSnackBar(
                     SnackBar(content: Text(t.deleteAccountFailed)),
@@ -165,6 +195,17 @@ class _SettingsPageState extends State<SettingsPage> {
               },
               child: Text(t.deleteAccount),
             ),
+            if (_isAdmin)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  t.userDeleteDisabled,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
           ],
           const SizedBox(height: 16),
           ListTile(
@@ -239,3 +280,4 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+

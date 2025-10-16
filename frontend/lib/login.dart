@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscure = true;
   bool _loading = false;
   List<AccountInfo> _accounts = const [];
+  String? _lookupName;
   bool _showAccounts = false; // legacy inline list (kept off)
   bool _argsProcessed = false;
   bool _remember = false; // remember login/token
@@ -49,6 +50,11 @@ class _LoginPageState extends State<LoginPage> {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map) {
         final argEmail = args['email']?.toString();
+        final rawName = (args['displayName'] ?? args['name'])?.toString();
+        final trimmedName = rawName?.trim();
+        if (trimmedName != null && trimmedName.isNotEmpty) {
+          _lookupName = trimmedName;
+        }
         if (argEmail != null && argEmail.isNotEmpty) {
           _emailCtrl.text = argEmail;
           _emailConfirmed = true;
@@ -83,15 +89,21 @@ class _LoginPageState extends State<LoginPage> {
     // Clear any previous validation error messages on the email field
     // that might have been shown from a prior failed attempt.
     _formKey.currentState?.validate();
-    // Check against backend user database
-    final exists = await AuthService.instance.emailExists(s);
-    if (!exists) {
+    // Check against backend user database (also fetch display name if available)
+    final lookup = await AuthService.instance.emailExists(s);
+    if (!lookup.exists) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(context.l10n.emailNotFound)));
       return;
     }
+    final lookupName = () {
+      final raw = lookup.name;
+      if (raw == null) return null;
+      final trimmed = raw.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }();
     // Lookup local saved token for auto-login convenience
     final accounts = await AuthService.instance.getAccounts();
     AccountInfo? acc;
@@ -107,7 +119,10 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.of(context).pushReplacementNamed('/home');
       return;
     }
-    setState(() => _emailConfirmed = true);
+    setState(() {
+      _emailConfirmed = true;
+      _lookupName = lookupName;
+    });
     await Future.delayed(const Duration(milliseconds: 50));
     if (mounted) _pwdFocus.requestFocus();
   }
@@ -216,14 +231,33 @@ class _LoginPageState extends State<LoginPage> {
                         final id = email.toLowerCase();
                         acc = _accounts.firstWhere((a) => a.id == id);
                       } catch (_) {}
-                      final displayName = (acc?.name?.isNotEmpty == true)
-                          ? acc!.name!.trim()
-                          : (email.split('@').first);
-                      final avatarText =
-                          (displayName.isNotEmpty
-                                  ? displayName.trim()[0]
-                                  : email[0])
-                              .toUpperCase();
+                      final savedName = acc?.name?.trim();
+                      final fallbackEmailName = () {
+                        final atIndex = email.indexOf('@');
+                        if (atIndex > 0) return email.substring(0, atIndex);
+                        return email;
+                      }();
+                      String displayName;
+                      if (savedName != null && savedName.isNotEmpty) {
+                        displayName = savedName;
+                      } else {
+                        final lookupName = _lookupName?.trim();
+                        if (lookupName != null && lookupName.isNotEmpty) {
+                          displayName = lookupName;
+                        } else {
+                          displayName = fallbackEmailName;
+                        }
+                      }
+                      displayName = displayName.trim();
+                      if (displayName.isEmpty) {
+                        displayName = fallbackEmailName;
+                      }
+                      final avatarSource = displayName.isNotEmpty
+                          ? displayName
+                          : email;
+                      final avatarText = avatarSource.isNotEmpty
+                          ? avatarSource[0].toUpperCase()
+                          : '?';
                       return Column(
                         children: [
                           CircleAvatar(
@@ -253,7 +287,10 @@ class _LoginPageState extends State<LoginPage> {
                       context.l10n.signInWithAnotherEmail,
                       centered: true,
                       onPressed: () {
-                        setState(() => _emailConfirmed = false);
+                        setState(() {
+                          _emailConfirmed = false;
+                          _lookupName = null;
+                        });
                         Future.microtask(() => _emailFocus.requestFocus());
                       },
                     ),
@@ -270,7 +307,8 @@ class _LoginPageState extends State<LoginPage> {
                             AppFormField(
                               controller: _emailCtrl,
                               focusNode: _emailFocus,
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: _emailConfirmed
                                   ? TextInputAction.next
@@ -315,7 +353,8 @@ class _LoginPageState extends State<LoginPage> {
                               controller: _pwdCtrl,
                               obscureText: _obscure,
                               textInputAction: TextInputAction.done,
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
                               decoration: InputDecoration(
                                 labelText: t.password,
                                 prefixIcon: const Icon(Icons.lock_outline),
@@ -401,8 +440,9 @@ class _LoginPageState extends State<LoginPage> {
                               t.register,
                               onPressed: _loading
                                   ? null
-                                  : () => Navigator.of(context)
-                                      .pushReplacementNamed('/register'),
+                                  : () => Navigator.of(
+                                      context,
+                                    ).pushReplacementNamed('/register'),
                             ),
                           ],
                         ),
@@ -413,7 +453,9 @@ class _LoginPageState extends State<LoginPage> {
                             t.forgotPassword,
                             onPressed: _loading
                                 ? null
-                                : () => Navigator.of(context).pushNamed('/forgot'),
+                                : () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/forgot'),
                             centered: true,
                           ),
                         ),

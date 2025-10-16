@@ -3,10 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Passport\HasApiTokens;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -22,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'phone',
         'dob',
         'gender',
@@ -48,8 +50,25 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => 'string',
             'dob' => 'date',
             'terms_accepted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return HasMany<UserBook>
+     */
+    public function userBooks(): HasMany
+    {
+        return $this->hasMany(UserBook::class);
+    }
+
+    /**
+     * @return HasMany<WalletTopUpRequest>
+     */
+    public function walletTopUpRequests(): HasMany
+    {
+        return $this->hasMany(WalletTopUpRequest::class);
     }
 }

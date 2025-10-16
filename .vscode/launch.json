@@ -1,0 +1,38 @@
+﻿{
+    "version":  "0.2.0",
+    "configurations":  [
+                           {
+                               "program":  "lib/main.dart",
+                               "name":  "Flutter (Chrome)",
+                               "request":  "launch",
+                               "cwd":  "${workspaceFolder}/frontend",
+                               "type":  "dart",
+                               "args":  [
+                                            "--dart-define=API_BASE_URL=http://127.0.0.1:8000"
+                                        ],
+                               "deviceId":  "chrome"
+                           },
+                           {
+                               "program":  "lib/main.dart",
+                               "name":  "Flutter (Edge)",
+                               "request":  "launch",
+                               "cwd":  "${workspaceFolder}/frontend",
+                               "type":  "dart",
+                               "args":  [
+                                            "--dart-define=API_BASE_URL=http://127.0.0.1:8000"
+                                        ],
+                               "deviceId":  "edge"
+                           },
+                           {
+                               "program":  "lib/main.dart",
+                               "name":  "Flutter (Windows)",
+                               "request":  "launch",
+                               "cwd":  "${workspaceFolder}/frontend",
+                               "type":  "dart",
+                               "args":  [
+                                            "--dart-define=API_BASE_URL=http://127.0.0.1:8000"
+                                        ],
+                               "deviceId":  "windows"
+                           }
+                       ]
+}

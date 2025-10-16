@@ -23,11 +23,18 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $dob = fake()->dateTimeBetween('-50 years', '-18 years');
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= Hash::make('Password123!'),
+            'role' => 'user',
+            'phone' => fake()->numerify('0#########'),
+            'dob' => $dob->format('Y-m-d'),
+            'gender' => fake()->randomElement(['male', 'female', 'other']),
+            'terms_accepted_at' => now(),
             'remember_token' => Str::random(10),
         ];
     }
