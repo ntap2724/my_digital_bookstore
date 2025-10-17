@@ -12,30 +12,43 @@ use Illuminate\Support\Facades\Gate;
 class BookReviewController extends Controller
 {
     public function index(Book $book)
-    {
-        $reviews = $book->reviews()
-            ->with(['user:id,name'])
-            ->latest()
-            ->paginate((int) request('per_page', 10));
+{
+    $reviews = $book->reviews()
+        ->with('user:id,name,email')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
 
-        return response()->json([
-            'data' => $reviews->getCollection()->map(static function (BookReview $review) {
-                return [
-                    'id' => $review->id,
-                    'rating' => (int) $review->rating,
-                    'comment' => $review->comment,
-                    'created_at' => optional($review->created_at)->toISOString(),
-                    'user' => $review->user?->only(['id', 'name']),
-                ];
-            })->values(),
-            'meta' => [
-                'current_page' => $reviews->currentPage(),
-                'last_page' => $reviews->lastPage(),
-                'per_page' => $reviews->perPage(),
-                'total' => $reviews->total(),
-            ],
-        ]);
+    // ✅ Tính rating breakdown
+    $ratingCounts = $book->reviews()
+        ->selectRaw('rating, COUNT(*) as count')
+        ->groupBy('rating')
+        ->pluck('count', 'rating')
+        ->toArray();
+
+    // Đảm bảo có đầy đủ 5 mức rating (1-5)
+    $breakdown = [];
+    for ($i = 5; $i >= 1; $i--) {
+        $breakdown[$i] = $ratingCounts[$i] ?? 0;
     }
+
+    $totalReviews = array_sum($breakdown);
+    $averageRating = $totalReviews > 0
+        ? $book->reviews()->avg('rating')
+        : 0;
+
+    return response()->json([
+        'data' => $reviews->items(),
+        'meta' => [
+            'current_page' => $reviews->currentPage(),
+            'last_page' => $reviews->lastPage(),
+            'per_page' => $reviews->perPage(),
+            'total' => $reviews->total(),
+            'average_rating' => round($averageRating, 1),
+            'total_reviews' => $totalReviews,
+            'rating_breakdown' => $breakdown, // 👈 THÊM NÀY
+        ],
+    ]);
+}
 
     public function store(Request $request, Book $book)
     {
@@ -104,4 +117,27 @@ class BookReviewController extends Controller
 
         return response()->json(['message' => 'Review deleted']);
     }
+
+    /**
+    * Get the authenticated user's review for a specific book
+    */
+    public function getUserReview(Book $book)
+    {
+        $review = $book->reviews()
+            ->where('user_id', auth()->id())
+            ->with('user:id,name,email')
+            ->first();
+
+        if (!$review) {
+            return response()->json([
+                'message' => 'You have not reviewed this book yet'
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $review
+        ]);
+    }
 }
+
+

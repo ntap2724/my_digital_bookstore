@@ -115,7 +115,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/{book}', [BookController::class, 'show']);
-Route::get('/books/{book}/reviews', [BookReviewController::class, 'index']);
+    Route::get('/books/{book}/reviews', [BookReviewController::class, 'index']);
+    Route::get('/books/{book}/my-review', [BookReviewController::class, 'getUserReview']);
     Route::post('/books', [BookController::class, 'store']);
     Route::put('/books/{book}', [BookController::class, 'update']);
     Route::delete('/books/{book}', [BookController::class, 'destroy']);

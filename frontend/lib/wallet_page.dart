@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:my_flutter_app/l10n/app_localizations.dart';
-
 import 'package:my_flutter_app/models/paginated_result.dart';
-
 import 'package:my_flutter_app/models/wallet.dart';
 import 'package:my_flutter_app/models/wallet_topup_request.dart';
 import 'package:my_flutter_app/models/wallet_transaction.dart';
-
 import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/wallet_service.dart';
@@ -604,7 +600,7 @@ class _WalletPageState extends State<WalletPage> {
 
           children: [
             Text(
-              t.walletBalance(t.creditUnit(balance)),
+              t.walletBalance(balance),
 
               style: Theme.of(context).textTheme.titleLarge,
             ),

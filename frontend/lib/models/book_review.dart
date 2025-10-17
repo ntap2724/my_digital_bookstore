@@ -2,6 +2,7 @@ class BookReview {
   final int id;
   final int rating;
   final String? comment;
+  final String? title;
   final DateTime? createdAt;
   final Map<String, dynamic>? user;
 
@@ -9,6 +10,7 @@ class BookReview {
     required this.id,
     required this.rating,
     this.comment,
+    this.title,
     this.createdAt,
     this.user,
   });
@@ -26,6 +28,7 @@ class BookReview {
       id: (json['id'] as num?)?.toInt() ?? 0,
       rating: (json['rating'] as num?)?.toInt() ?? 0,
       comment: json['comment']?.toString(),
+      title: json['title'] as String?,
       createdAt: createdAt,
       user: json['user'] is Map<String, dynamic>
           ? Map<String, dynamic>.from(json['user'] as Map)

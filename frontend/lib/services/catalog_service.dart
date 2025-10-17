@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
-
+import 'package:flutter/material.dart';
 import 'package:my_flutter_app/models/author.dart';
 import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/models/book_review.dart';
@@ -23,9 +23,16 @@ class CatalogService {
   List<Book>? _allBooksCache;
   Future<List<Book>>? _allBooksPending;
 
+  final Map<int, Map<String, dynamic>> _reviewsCache = {};
+  final Map<int, Future<Map<String, dynamic>>> _reviewsPending = {};
+  final Map<int, BookReview?> _userReviewCache = {};
+  final Map<int, Future<BookReview?>> _userReviewPending = {};
+
   final ValueNotifier<int?> _ownedBookNotifier = ValueNotifier<int?>(null);
 
   ValueListenable<int?> get ownedBookUpdates => _ownedBookNotifier;
+
+  // ==================== EXISTING METHODS ====================
 
   Future<List<Category>> fetchCategories({
     String? search,
@@ -57,9 +64,9 @@ class CatalogService {
           final data = json['data'];
           final list = data is List
               ? data
-                  .whereType<Map<String, dynamic>>()
-                  .map(Category.fromJson)
-                  .toList(growable: false)
+                    .whereType<Map<String, dynamic>>()
+                    .map(Category.fromJson)
+                    .toList(growable: false)
               : const <Category>[];
           _categoryCache[key] = list;
           _categoryPending.remove(key);
@@ -109,9 +116,9 @@ class CatalogService {
           final data = json['data'];
           final list = data is List
               ? data
-                  .whereType<Map<String, dynamic>>()
-                  .map(Author.fromJson)
-                  .toList(growable: false)
+                    .whereType<Map<String, dynamic>>()
+                    .map(Author.fromJson)
+                    .toList(growable: false)
               : const <Author>[];
           _authorCache[key] = list;
           _authorPending.remove(key);
@@ -206,14 +213,16 @@ class CatalogService {
       _allBooksPending = null;
     }
 
-    final future = _fetchAllBooks(auth: auth).then((books) {
-      _allBooksCache = books;
-      _allBooksPending = null;
-      return List<Book>.unmodifiable(books);
-    }).catchError((error) {
-      _allBooksPending = null;
-      throw error;
-    });
+    final future = _fetchAllBooks(auth: auth)
+        .then((books) {
+          _allBooksCache = books;
+          _allBooksPending = null;
+          return List<Book>.unmodifiable(books);
+        })
+        .catchError((error) {
+          _allBooksPending = null;
+          throw error;
+        });
 
     _allBooksPending = future;
     return future;
@@ -231,14 +240,13 @@ class CatalogService {
     while (true) {
       final json = await _client.getJson(
         '/api/books',
-        query: {
-          'page': page,
-          'per_page': perPage,
-        },
+        query: {'page': page, 'per_page': perPage},
         auth: auth,
       );
-      final result =
-          PaginatedResult.fromJson(json, (item) => Book.fromJson(item));
+      final result = PaginatedResult.fromJson(
+        json,
+        (item) => Book.fromJson(item),
+      );
       books.addAll(result.data);
       if (page >= result.lastPage) break;
       page += 1;
@@ -246,6 +254,165 @@ class CatalogService {
     return books;
   }
 
+  // ==================== REVIEW METHODS ====================
+
+  Future<Map<String, dynamic>> getBookReviews(
+    int bookId, {
+    bool forceRefresh = false,
+    bool auth = true,
+  }) async {
+    if (forceRefresh) {
+      _reviewsCache.remove(bookId);
+      _reviewsPending.remove(bookId);
+    }
+
+    if (!forceRefresh) {
+      final cached = _reviewsCache[bookId];
+      if (cached != null) return cached;
+      final pending = _reviewsPending[bookId];
+      if (pending != null) return pending;
+    }
+
+    final future = _client
+        .getJson('/api/books/$bookId/reviews', auth: auth)
+        .then((json) {
+          debugPrint('📦 Raw API Response:');
+          debugPrint('  - Full JSON keys: ${json.keys.join(', ')}');
+
+          final reviewsData = json['data'];
+          final reviews = reviewsData is List
+              ? reviewsData
+                    .whereType<Map<String, dynamic>>()
+                    .map(BookReview.fromJson)
+                    .toList(growable: false)
+              : const <BookReview>[];
+
+          debugPrint('📝 Parsed ${reviews.length} reviews');
+
+          double averageRating = 0.0;
+          int totalReviews = 0;
+          Map<int, int> ratingBreakdown = {}; // 👈 THÊM
+
+          // Parse từ meta
+          final meta = json['meta'];
+          if (meta is Map<String, dynamic>) {
+            averageRating = (meta['average_rating'] as num?)?.toDouble() ?? 0.0;
+            totalReviews = (meta['total_reviews'] as num?)?.toInt() ?? 0;
+
+            // ✅ Parse rating breakdown
+            final breakdown = meta['rating_breakdown'];
+            if (breakdown is Map) {
+              breakdown.forEach((key, value) {
+                final rating = int.tryParse(key.toString());
+                final count = value is int
+                    ? value
+                    : (value as num?)?.toInt() ?? 0;
+                if (rating != null) {
+                  ratingBreakdown[rating] = count;
+                }
+              });
+              debugPrint('✅ Rating breakdown: $ratingBreakdown');
+            }
+          } else {
+            // Fallback: calculate from reviews
+            averageRating = (json['average_rating'] as num?)?.toDouble() ?? 0.0;
+            totalReviews = (json['total_reviews'] as num?)?.toInt() ?? 0;
+          }
+
+          // Calculate from reviews if still empty
+          if (totalReviews == 0 && reviews.isNotEmpty) {
+            totalReviews = reviews.length;
+            final sum = reviews.fold<int>(0, (sum, r) => sum + r.rating);
+            averageRating = sum / reviews.length;
+
+            // ✅ Calculate breakdown from reviews
+            for (var review in reviews) {
+              ratingBreakdown[review.rating] =
+                  (ratingBreakdown[review.rating] ?? 0) + 1;
+            }
+            debugPrint(
+              '✅ Calculated from reviews: avg=$averageRating, breakdown=$ratingBreakdown',
+            );
+          }
+
+          final result = {
+            'reviews': reviews,
+            'average_rating': averageRating,
+            'total_reviews': totalReviews,
+            'rating_breakdown': ratingBreakdown, // 👈 THÊM
+          };
+
+          _reviewsCache[bookId] = result;
+          _reviewsPending.remove(bookId);
+          return result;
+        })
+        .catchError((error) {
+          debugPrint('❌ Error in getBookReviews: $error');
+          _reviewsPending.remove(bookId);
+          throw error;
+        });
+
+    _reviewsPending[bookId] = future;
+    return future;
+  }
+
+  // ✅ FIXED: getUserReview with cache
+  Future<BookReview?> getUserReview(
+    int bookId, {
+    bool forceRefresh = false,
+  }) async {
+    if (forceRefresh) {
+      _userReviewCache.remove(bookId);
+      _userReviewPending.remove(bookId);
+    }
+
+    if (!forceRefresh) {
+      if (_userReviewCache.containsKey(bookId)) {
+        return _userReviewCache[bookId];
+      }
+      final pending = _userReviewPending[bookId];
+      if (pending != null) return pending;
+    }
+
+    // ✅ Tạo async function riêng với try-catch
+    Future<BookReview?> fetchUserReview() async {
+      try {
+        debugPrint('👤 Fetching user review...');
+        final json = await _client.getJson(
+          '/api/books/$bookId/my-review',
+          auth: true,
+        );
+
+        debugPrint('✅ User review response received');
+        final review = BookReview.fromJson(_unwrap(json));
+        _userReviewCache[bookId] = review;
+        _userReviewPending.remove(bookId);
+        return review;
+      } catch (error) {
+        debugPrint('⚠️ Error fetching user review: $error');
+        _userReviewCache[bookId] = null;
+        _userReviewPending.remove(bookId);
+
+        // Nếu là 404 hoặc route not found, return null (user chưa review)
+        if (error is ApiException &&
+            (error.statusCode == 404 ||
+                error.message.contains('could not be found'))) {
+          debugPrint('ℹ️ User has not reviewed yet');
+          return null;
+        }
+
+        // Các lỗi khác cũng return null thay vì throw
+        debugPrint('⚠️ Other error, returning null');
+        return null;
+      }
+    }
+
+    final future = fetchUserReview();
+    _userReviewPending[bookId] = future;
+    return future;
+  }
+
+  // ✅ FIXED: submitReview with cache invalidation
   Future<BookReview> submitReview({
     required int bookId,
     required int rating,
@@ -261,8 +428,44 @@ class CatalogService {
       body: payload,
       auth: true,
     );
+
+    // Invalidate cache
+    _reviewsCache.remove(bookId);
+    _reviewsPending.remove(bookId);
+    _userReviewCache.remove(bookId);
+    _userReviewPending.remove(bookId);
+
     return BookReview.fromJson(_unwrap(json));
   }
+
+  // ✅ FIXED: updateReview with cache invalidation
+  Future<BookReview> updateReview({
+    required int bookId,
+    required int reviewId,
+    required int rating,
+    String? comment,
+  }) async {
+    final trimmed = comment?.trim();
+    final payload = <String, dynamic>{
+      'rating': rating,
+      if (trimmed != null && trimmed.isNotEmpty) 'comment': trimmed,
+    };
+    final json = await _client.putJson(
+      '/api/books/$bookId/reviews/$reviewId',
+      body: payload,
+      auth: true,
+    );
+
+    // Invalidate cache
+    _reviewsCache.remove(bookId);
+    _reviewsPending.remove(bookId);
+    _userReviewCache.remove(bookId);
+    _userReviewPending.remove(bookId);
+
+    return BookReview.fromJson(_unwrap(json));
+  }
+
+  // ==================== BOOK CRUD METHODS ====================
 
   Future<Book> createBook(Map<String, dynamic> payload) async {
     final json = await _client.postJson(
@@ -289,6 +492,8 @@ class CatalogService {
     invalidateBooks();
   }
 
+  // ==================== CACHE INVALIDATION ====================
+
   void invalidateCache() {
     _categoryCache.clear();
     _categoryPending.clear();
@@ -298,6 +503,10 @@ class CatalogService {
     _bookPending.clear();
     _allBooksCache = null;
     _allBooksPending = null;
+    _reviewsCache.clear();
+    _reviewsPending.clear();
+    _userReviewCache.clear();
+    _userReviewPending.clear();
   }
 
   void invalidateBooks() {
@@ -306,6 +515,15 @@ class CatalogService {
     _allBooksCache = null;
     _allBooksPending = null;
   }
+
+  void invalidateReviews(int bookId) {
+    _reviewsCache.remove(bookId);
+    _reviewsPending.remove(bookId);
+    _userReviewCache.remove(bookId);
+    _userReviewPending.remove(bookId);
+  }
+
+  // ==================== OTHER METHODS ====================
 
   void markBookOwned(int bookId) {
     var changed = false;
@@ -354,11 +572,12 @@ class CatalogService {
   }
 
   String _cacheKey(String prefix, Map<String, Object?> params) {
-    final entries = params.entries
-        .where((e) => e.value != null && e.value.toString().isNotEmpty)
-        .map((e) => '${e.key}=${e.value}')
-        .toList()
-      ..sort();
+    final entries =
+        params.entries
+            .where((e) => e.value != null && e.value.toString().isNotEmpty)
+            .map((e) => '${e.key}=${e.value}')
+            .toList()
+          ..sort();
     return '$prefix:${entries.join('&')}';
   }
 }

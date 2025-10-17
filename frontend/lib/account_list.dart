@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/widgets/app_navigation_menu.dart';

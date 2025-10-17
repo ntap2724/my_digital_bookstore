@@ -253,10 +253,8 @@ class AppLocalizations {
   String get bookCreditPriceRequired => _t('bookCreditPriceRequired');
   String get bookCreditPriceInvalid => _t('bookCreditPriceInvalid');
   String get bookAvailableCopiesLabel => _t('bookAvailableCopiesLabel');
-  String get bookAvailableCopiesRequired =>
-      _t('bookAvailableCopiesRequired');
-  String get bookAvailableCopiesInvalid =>
-      _t('bookAvailableCopiesInvalid');
+  String get bookAvailableCopiesRequired => _t('bookAvailableCopiesRequired');
+  String get bookAvailableCopiesInvalid => _t('bookAvailableCopiesInvalid');
   String get bookStatusLabel => _t('bookStatusLabel');
   String get bookCategoryNone => _t('bookCategoryNone');
   String get bookAuthorsEmpty => _t('bookAuthorsEmpty');
@@ -402,6 +400,16 @@ class AppLocalizations {
   String myBooksLastOpened(String date) =>
       _fmt('myBooksLastOpened', {'date': date});
   String get openBook => _t('openBook');
+  String get bookReviewHelpful => _t('bookReviewHelpful');
+  String get bookReviewYes => _t('bookReviewYes');
+  String get bookReviewNo => _t('bookReviewNo');
+  String get bookReviewReport => _t('bookReviewReport');
+  String get bookReviewNoTitle => _t('bookReviewNoTitle');
+  String get bookReviewSortBy => _t('bookReviewSortBy');
+  String get bookReviewSortMostHelpful => _t('bookReviewSortMostHelpful');
+  String get bookReviewSortMostRecent => _t('bookReviewSortMostRecent');
+  String get bookReviewSortHighestRating => _t('bookReviewSortHighestRating');
+  String get bookReviewSortLowestRating => _t('bookReviewSortLowestRating');
 
   // ---- Actions / Misc ----
   String get purchase => _t('purchase');

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:my_flutter_app/book_detail.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/book.dart';
@@ -18,7 +17,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const double _bookCardInfoHeight = 140;
+  static const double _bookCardInfoHeight = 160;
   static const double _bookCoverAspectRatio = 3 / 4;
 
   final CatalogService _catalogService = CatalogService.instance;
@@ -30,7 +29,6 @@ class _HomePageState extends State<HomePage> {
 
   String? _displayName;
   String? _email;
-  bool _isAdmin = false;
   List<Book> _books = const [];
   bool _loadingBooks = true;
   String? _bookError;
@@ -68,12 +66,10 @@ class _HomePageState extends State<HomePage> {
 
     final name = _extractName(active, profile);
     final email = _extractEmail(active, profile);
-    final role = profile?['role']?.toString().toLowerCase();
 
     setState(() {
       _displayName = name;
       _email = email;
-      _isAdmin = role == 'admin';
     });
   }
 
@@ -107,10 +103,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
-  String? _extractName(
-    AccountInfo? account,
-    Map<String, dynamic>? profile,
-  ) {
+  String? _extractName(AccountInfo? account, Map<String, dynamic>? profile) {
     final fromAccount = account?.name;
     if (fromAccount != null && fromAccount.trim().isNotEmpty) {
       return fromAccount.trim();
@@ -124,15 +117,15 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleAddToCart(Book book, AppLocalizations t) async {
     if (book.owned) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.bookAlreadyOwned)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.bookAlreadyOwned)));
       return;
     }
     if (_cartService.itemFor(book.id) != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.cartAlreadyContains)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.cartAlreadyContains)));
       return;
     }
     if (_addingToCart.contains(book.id)) return;
@@ -140,20 +133,24 @@ class _HomePageState extends State<HomePage> {
     try {
       await _cartService.addBook(book);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.addedToCart)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.addedToCart)));
     } on CartItemAlreadyExistsException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.cartAlreadyContains)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.cartAlreadyContains)));
     } on BookAlreadyOwnedException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.bookAlreadyOwned)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.bookAlreadyOwned)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.cartUpdateFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.cartUpdateFailed)));
     } finally {
       if (mounted) {
         setState(() => _addingToCart.remove(book.id));
@@ -163,9 +160,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleQuickPurchase(Book book, AppLocalizations t) async {
     if (book.owned) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.bookAlreadyOwned)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.bookAlreadyOwned)));
       return;
     }
     if (_purchasingBooks.contains(book.id)) return;
@@ -186,17 +183,20 @@ class _HomePageState extends State<HomePage> {
             .map((b) => b.id == book.id ? b.copyWith(owned: true) : b)
             .toList(growable: false);
       });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.purchaseWithCredits)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t.purchaseWithCredits)));
     } on ApiException catch (e) {
       final message = e.message.isNotEmpty ? e.message : t.notEnoughCredits;
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => _purchasingBooks.remove(book.id));
@@ -204,10 +204,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String? _extractEmail(
-    AccountInfo? account,
-    Map<String, dynamic>? profile,
-  ) {
+  String? _extractEmail(AccountInfo? account, Map<String, dynamic>? profile) {
     final fromAccount = account?.email;
     if (fromAccount != null && fromAccount.trim().isNotEmpty) {
       return fromAccount.trim();
@@ -230,9 +227,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final t = context.l10n;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.home),
-      ),
+      appBar: AppBar(title: Text(t.home)),
       drawer: const AppNavigationMenu(currentRoute: '/home'),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
@@ -244,9 +239,9 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24),
             Text(
               t.bookExplorerTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
@@ -314,11 +309,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildBookCard(
-    BuildContext context,
-    AppLocalizations t,
-    Book book,
-  ) {
+  Widget _buildBookCard(BuildContext context, AppLocalizations t, Book book) {
     final theme = Theme.of(context);
     final categoryName = book.category?.name;
     final trimmedCategory = categoryName?.trim();
@@ -328,14 +319,14 @@ class _HomePageState extends State<HomePage> {
     final purchasing = _purchasingBooks.contains(book.id);
 
     Widget buildFallbackCover() => Container(
-          color: theme.colorScheme.surfaceContainerHighest,
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.menu_book_outlined,
-            size: 42,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        );
+      color: theme.colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.menu_book_outlined,
+        size: 42,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
 
     final hasCover =
         book.coverImageUrl != null && book.coverImageUrl!.trim().isNotEmpty;
@@ -389,46 +380,57 @@ class _HomePageState extends State<HomePage> {
             SizedBox(
               height: _bookCardInfoHeight,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+                padding: const EdgeInsets.all(
+                  12,
+                ), // ✅ Padding đều 12px tất cả phía
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            book.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 6),
-                          if (trimmedCategory != null &&
-                              trimmedCategory.isNotEmpty)
-                            Text(
+                    // 1. TITLE (fixed height với maxLines)
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+
+                    const SizedBox(height: 8), // ✅ Spacing đều 8px
+                    // 2. CATEGORY/DESCRIPTION (fixed height)
+                    SizedBox(
+                      height: 16, // ✅ Fixed height để spacing consistent
+                      child:
+                          trimmedCategory != null && trimmedCategory.isNotEmpty
+                          ? Text(
                               trimmedCategory,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall,
-                            ),
-                        ],
-                      ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
+
+                    const SizedBox(height: 8), // ✅ Spacing đều 8px
+                    // 3. PRICE
                     Text(
                       t.bookPrice(book.creditPrice.toString()),
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 12),
+
+                    const SizedBox(height: 8), // ✅ Spacing đều 8px
+
+                    const Spacer(), // ✅ Đẩy buttons xuống dưới
+                    // 4. BUTTONS
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ), // ✅ Giảm padding ngang
                             ),
                             onPressed: adding || isOwned || isInCart
                                 ? null
@@ -445,22 +447,29 @@ class _HomePageState extends State<HomePage> {
                                     isInCart
                                         ? Icons.check_circle_outline
                                         : Icons.add_shopping_cart_outlined,
+                                    size: 18, // ✅ Icon nhỏ hơn một chút
                                   ),
                             label: Text(
                               adding
                                   ? t.loading
                                   : isInCart
-                                      ? t.cartAlreadyContains
-                                      : t.addToCart,
+                                  ? t.cartAlreadyContains
+                                  : t.addToCart,
                               overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                              ), // ✅ Font nhỏ hơn
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8), // ✅ Spacing giữa buttons
                         Expanded(
                           child: FilledButton.icon(
                             style: FilledButton.styleFrom(
                               minimumSize: const Size.fromHeight(44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ), // ✅ Giảm padding ngang
                             ),
                             onPressed: purchasing || isOwned
                                 ? null
@@ -477,14 +486,18 @@ class _HomePageState extends State<HomePage> {
                                     isOwned
                                         ? Icons.check_circle
                                         : Icons.shopping_cart_checkout_outlined,
+                                    size: 18, // ✅ Icon nhỏ hơn một chút
                                   ),
                             label: Text(
                               purchasing
                                   ? t.loading
                                   : isOwned
-                                      ? t.bookOwnedTag
-                                      : t.purchase,
+                                  ? t.bookOwnedTag
+                                  : t.purchase,
                               overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                              ), // ✅ Font nhỏ hơn
                             ),
                           ),
                         ),
@@ -591,15 +604,9 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              t.catalogEmpty,
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(t.catalogEmpty, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            Text(
-              t.refresh,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(t.refresh, style: theme.textTheme.bodyMedium),
           ],
         ),
       ),
@@ -619,27 +626,13 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              greeting,
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(greeting, style: theme.textTheme.titleMedium),
             if (rawEmail.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   t.emailLabel(rawEmail),
                   style: theme.textTheme.bodySmall,
-                ),
-              ),
-            if (_isAdmin)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Chip(
-                  avatar: const Icon(
-                    Icons.admin_panel_settings_outlined,
-                    size: 18,
-                  ),
-                  label: Text(t.adminPanel),
                 ),
               ),
           ],
