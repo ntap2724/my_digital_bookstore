@@ -71,4 +71,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(WalletTopUpRequest::class);
     }
+    /**
+     * Get the review votes for the user
+     */
+    public function reviewVotes(): HasMany
+    {
+        return $this->hasMany(ReviewVote::class);
+    }
+
+    /**
+     * Get the reviews for the user
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(BookReview::class);
+    }
 }

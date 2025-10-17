@@ -36,13 +36,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
   bool _submitting = false;
 
   DateTime? _dob;
-  String? _gender; // 'male' | 'female' | 'other'
+  String? _gender;
   bool _acceptedTerms = false;
 
   final _emailReg = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
   final _phoneReg = RegExp(r'^(0|\+84)(\d{9})$');
-
-  // Autovalidate handled via AutovalidateMode.onUserInteraction on fields
 
   @override
   void initState() {
@@ -138,8 +136,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
     setState(() => _submitting = true);
     FocusScope.of(context).unfocus();
     try {
-      // Map internal gender key to server expected string
-
       final result = await AuthService.instance.register(
         name: _fullNameCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
@@ -154,8 +150,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(context.l10n.registerSuccess)));
-        // Optionally navigate
-        // Navigator.of(context).pushReplacementNamed('/login');
       } else {
         var msg = result.message ?? context.l10n.registerFailed;
         final lower = msg.toLowerCase();
@@ -186,26 +180,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Settings icon (top-left)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      tooltip: t.settings,
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed('/settings'),
-                      icon: const Icon(Icons.settings_outlined),
-                    ),
-                  ),
                   const SizedBox(height: 8),
+                  // Icon
                   const CircleAvatar(
-                    radius: 36,
-                    child: Icon(Icons.person_add_alt, size: 36),
+                    radius: 40,
+                    child: Icon(Icons.person_add_alt, size: 40),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
+                  // Title
                   Text(
                     t.registerTitle,
                     textAlign: TextAlign.center,
@@ -213,18 +199,25 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
+                  // Subtitle
                   Text(
                     t.registerSubtitle,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.7),
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 28),
+                  // Form
                   Form(
                     key: _formKey,
                     autovalidateMode: AutovalidateMode.disabled,
                     child: Column(
                       children: [
+                        // Full Name
                         AppFormField(
                           controller: _fullNameCtrl,
                           focusNode: _nameFocus,
@@ -243,8 +236,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           },
                           onFieldSubmitted: (_) => _emailFocus.requestFocus(),
                         ),
-                        const SizedBox(height: 0),
-
+                        const SizedBox(height: 12),
+                        // Email
                         AppFormField(
                           controller: _emailCtrl,
                           focusNode: _emailFocus,
@@ -268,8 +261,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           },
                           onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
                         ),
-                        const SizedBox(height: 0),
-
+                        const SizedBox(height: 12),
+                        // Phone
                         AppFormField(
                           controller: _phoneCtrl,
                           focusNode: _phoneFocus,
@@ -294,8 +287,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           },
                           onFieldSubmitted: (_) => _pwdFocus.requestFocus(),
                         ),
-                        const SizedBox(height: 0),
-
+                        const SizedBox(height: 12),
+                        // Password
                         AppFormField(
                           controller: _passwordCtrl,
                           focusNode: _pwdFocus,
@@ -318,7 +311,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   : t.hidePassword,
                             ),
                           ),
-                          bottomSpacing: 0,
                           validator: (v) {
                             final s = v ?? '';
                             if (s.isEmpty) return t.passwordRequired;
@@ -330,6 +322,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           onChanged: (_) => setState(() {}),
                           onFieldSubmitted: (_) => _confirmFocus.requestFocus(),
                         ),
+                        // Password checklist/ok message
                         Builder(
                           builder: (context) {
                             final theme = Theme.of(context);
@@ -340,19 +333,22 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                 hasText &&
                                 _isStrongPassword(_passwordCtrl.text);
                             if (!showChecklist && !showPositive) {
-                              return const SizedBox(height: 16);
+                              return const SizedBox(height: 12);
                             }
                             final okStyle = helperTextStyle(
                               context,
                             ).copyWith(color: theme.colorScheme.primary);
-                            return FieldHelper(
-                              child: showChecklist
-                                  ? _passwordChecklist(_passwordCtrl.text, t)
-                                  : Text(t.passwordOk, style: okStyle),
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: FieldHelper(
+                                child: showChecklist
+                                    ? _passwordChecklist(_passwordCtrl.text, t)
+                                    : Text(t.passwordOk, style: okStyle),
+                              ),
                             );
                           },
                         ),
-
+                        // Confirm Password
                         AppFormField(
                           controller: _confirmCtrl,
                           focusNode: _confirmFocus,
@@ -376,7 +372,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   : t.hidePassword,
                             ),
                           ),
-                          bottomSpacing: 0,
                           onChanged: (_) => setState(() {}),
                           validator: (v) {
                             if (v == null || v.isEmpty) {
@@ -388,24 +383,28 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             return null;
                           },
                         ),
-
+                        // Confirm password match message
                         Builder(
                           builder: (context) {
                             final ok =
                                 _confirmCtrl.text.isNotEmpty &&
                                 _confirmCtrl.text == _passwordCtrl.text;
-                            if (!ok) return const SizedBox(height: 16);
+                            if (!ok) return const SizedBox(height: 12);
                             final style = helperTextStyle(context).copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             );
-                            return FieldHelper(
-                              child: Text(
-                                context.l10n.confirmPasswordMatch,
-                                style: style,
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: FieldHelper(
+                                child: Text(
+                                  context.l10n.confirmPasswordMatch,
+                                  style: style,
+                                ),
                               ),
                             );
                           },
                         ),
+                        // DOB and Gender row
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -466,8 +465,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 16),
+                        // Terms and Privacy checkbox
                         Theme(
                           data: Theme.of(context).copyWith(
                             splashColor: Colors.transparent,
@@ -527,19 +526,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 8),
+                        // Age requirement warning
                         if (_dob != null && _age(_dob!) < 13)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              t.ageRequirement,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                t.ageRequirement,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                               ),
                             ),
                           ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 20),
+                        // Register button
                         PrimaryButton.icon(
                           onPressed: _isReadyToSubmit && !_submitting
                               ? _submit
@@ -555,23 +558,25 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               : const Icon(Icons.person_add),
                           label: Text(_submitting ? t.loggingIn : t.register),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
+                        // Login link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(t.haveAccount),
-                            TextButton(
+                            const SizedBox(width: 4),
+                            LinkButton(
+                              t.login,
                               onPressed: () => Navigator.of(
                                 context,
                               ).pushReplacementNamed('/login'),
-                              child: Text(t.login),
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),

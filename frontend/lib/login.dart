@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/widgets/app_form_field.dart';
-import 'package:my_flutter_app/widgets/form_utils.dart';
 import 'package:my_flutter_app/widgets/link_button.dart';
 import 'package:my_flutter_app/widgets/primary_button.dart';
 
@@ -21,10 +20,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
   List<AccountInfo> _accounts = const [];
   String? _lookupName;
-  bool _showAccounts = false; // legacy inline list (kept off)
+  bool _showAccounts = false;
   bool _argsProcessed = false;
-  bool _remember = false; // remember login/token
-  bool _emailConfirmed = false; // step control: email -> password
+  bool _remember = false;
+  bool _emailConfirmed = false;
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _pwdFocus = FocusNode();
 
@@ -86,10 +85,7 @@ class _LoginPageState extends State<LoginPage> {
       _formKey.currentState?.validate();
       return;
     }
-    // Clear any previous validation error messages on the email field
-    // that might have been shown from a prior failed attempt.
     _formKey.currentState?.validate();
-    // Check against backend user database (also fetch display name if available)
     final lookup = await AuthService.instance.emailExists(s);
     if (!lookup.exists) {
       if (!mounted) return;
@@ -104,7 +100,6 @@ class _LoginPageState extends State<LoginPage> {
       final trimmed = raw.trim();
       return trimmed.isEmpty ? null : trimmed;
     }();
-    // Lookup local saved token for auto-login convenience
     final accounts = await AuthService.instance.getAccounts();
     AccountInfo? acc;
     try {
@@ -112,7 +107,6 @@ class _LoginPageState extends State<LoginPage> {
     } catch (_) {
       acc = null;
     }
-    // Auto-login if saved token exists for this email
     if (acc != null && acc.token.isNotEmpty) {
       await AuthService.instance.setActiveAccount(acc.id);
       if (!mounted) return;
@@ -132,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     setState(() {
       _accounts = accs;
-      _showAccounts = false; // always off
+      _showAccounts = false;
     });
   }
 
@@ -180,22 +174,14 @@ class _LoginPageState extends State<LoginPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top bar: Settings (left) + Accounts (right)
+                  // Top bar: Only Accounts button (right aligned)
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      IconButton(
-                        tooltip: t.settings,
-                        onPressed: _loading
-                            ? null
-                            : () =>
-                                  Navigator.of(context).pushNamed('/settings'),
-                        icon: const Icon(Icons.settings_outlined),
-                      ),
                       IconButton(
                         tooltip: t.manageAccounts,
                         onPressed: _loading
@@ -206,12 +192,14 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
+                  // Lock icon
                   const CircleAvatar(
-                    radius: 36,
-                    child: Icon(Icons.lock_open, size: 36),
+                    radius: 40,
+                    child: Icon(Icons.lock_open, size: 40),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
+                  // Title
                   Text(
                     t.login,
                     textAlign: TextAlign.center,
@@ -219,9 +207,8 @@ class _LoginPageState extends State<LoginPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  // Show user badge only after pressing Continue (email confirmed)
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
+                  // User badge (shown after email confirmation)
                   Builder(
                     builder: (context) {
                       if (!_emailConfirmed) return const SizedBox.shrink();
@@ -261,23 +248,29 @@ class _LoginPageState extends State<LoginPage> {
                       return Column(
                         children: [
                           CircleAvatar(
-                            radius: 30,
+                            radius: 32,
                             child: Text(
                               avatarText,
-                              style: const TextStyle(fontSize: 22),
+                              style: const TextStyle(fontSize: 24),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Text(
                             displayName,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           Text(
                             email,
-                            style: Theme.of(context).textTheme.bodySmall,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.6),
+                                ),
                           ),
-                          const SizedBox(height: kFieldSpacing),
+                          const SizedBox(height: 20),
                         ],
                       );
                     },
@@ -294,8 +287,9 @@ class _LoginPageState extends State<LoginPage> {
                         Future.microtask(() => _emailFocus.requestFocus());
                       },
                     ),
-                    const SizedBox(height: kFieldSpacing),
+                    const SizedBox(height: 24),
                   ],
+                  // Form
                   Form(
                     key: _formKey,
                     child: Column(
@@ -303,6 +297,7 @@ class _LoginPageState extends State<LoginPage> {
                         if (_accounts.isNotEmpty && _showAccounts)
                           const SizedBox.shrink()
                         else ...[
+                          // Email field (only when not confirmed)
                           if (_emailConfirmed == false)
                             AppFormField(
                               controller: _emailCtrl,
@@ -336,9 +331,9 @@ class _LoginPageState extends State<LoginPage> {
                                   _emailConfirmed ? null : _confirmEmail(),
                             ),
                           if (_emailConfirmed == false)
-                            const SizedBox(height: 0),
+                            const SizedBox(height: 24),
+                          // Email field (read-only when confirmed)
                           if (_emailConfirmed == true)
-                            // Show confirmed email in read-only input above password
                             AppFormField(
                               controller: _emailCtrl,
                               enabled: false,
@@ -347,10 +342,13 @@ class _LoginPageState extends State<LoginPage> {
                                 prefixIcon: const Icon(Icons.alternate_email),
                               ),
                             ),
-                          const SizedBox(height: 0),
+                          if (_emailConfirmed == true)
+                            const SizedBox(height: 16),
+                          // Password field
                           if (_emailConfirmed == true)
                             AppFormField(
                               controller: _pwdCtrl,
+                              focusNode: _pwdFocus,
                               obscureText: _obscure,
                               textInputAction: TextInputAction.done,
                               autovalidateMode:
@@ -376,8 +374,9 @@ class _LoginPageState extends State<LoginPage> {
                                   : null,
                               onFieldSubmitted: (_) => _doLogin(),
                             ),
-                          // Spacing is handled by AppFormField (16px). Avoid extra gap here.
-                          // Remember password toggle
+                          // Remember password checkbox
+                          if (_emailConfirmed == true)
+                            const SizedBox(height: 12),
                           if (_emailConfirmed == true)
                             Row(
                               children: [
@@ -390,19 +389,22 @@ class _LoginPageState extends State<LoginPage> {
                                         ),
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  Localizations.localeOf(
-                                            context,
-                                          ).languageCode ==
-                                          'vi'
-                                      ? 'Nhớ mật khẩu'
-                                      : 'Remember password',
+                                Expanded(
+                                  child: Text(
+                                    Localizations.localeOf(
+                                              context,
+                                            ).languageCode ==
+                                            'vi'
+                                        ? 'Nhớ mật khẩu'
+                                        : 'Remember password',
+                                  ),
                                 ),
                               ],
                             ),
                           if (_emailConfirmed == true)
-                            const SizedBox(height: 8),
-
+                            const SizedBox(height: 24),
+                          if (_emailConfirmed == false) const SizedBox.shrink(),
+                          // Primary button (Continue or Login)
                           PrimaryButton.icon(
                             onPressed: _loading
                                 ? null
@@ -431,11 +433,13 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 24),
+                        // Register link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(t.noAccount),
+                            const SizedBox(width: 4),
                             LinkButton(
                               t.register,
                               onPressed: _loading
@@ -446,7 +450,8 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 16),
+                        // Forgot password link
                         Align(
                           alignment: Alignment.center,
                           child: LinkButton(

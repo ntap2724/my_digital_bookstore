@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserBookController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WalletTopUpRequestController;
+use App\Http\Controllers\Api\ReviewVoteController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -145,4 +146,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/wallets/{user}', [WalletController::class, 'showForUser']);
     Route::get('/wallets/{user}/transactions', [WalletController::class, 'transactionsForUser']);
     Route::post('/wallets/{user}/adjust', [WalletController::class, 'adjust']);
+});
+
+// Review Vote Routes (requires authentication)
+Route::middleware('auth:sanctum')->group(function () {
+    // Vote on a review
+    Route::post('/reviews/{reviewId}/vote', [ReviewVoteController::class, 'vote']);
+    
+    // Remove vote from a review
+    Route::delete('/reviews/{reviewId}/vote', [ReviewVoteController::class, 'removeVote']);
+    
+    // Get vote status (can be optional auth too)
+    Route::get('/reviews/{reviewId}/vote', [ReviewVoteController::class, 'getVoteStatus']);
+});
+
+// Book Review Routes
+Route::prefix('books/{bookId}')->group(function () {
+    // Get all reviews for a book (optional auth to include user votes)
+    Route::get('/reviews', [BookReviewController::class, 'index']);
+    
+    // Routes requiring authentication
+    Route::middleware('auth:sanctum')->group(function () {
+        // Get current user's review
+        Route::get('/reviews/user', [BookReviewController::class, 'getUserReview']);
+        
+        // Submit a new review
+        Route::post('/reviews', [BookReviewController::class, 'store']);
+        
+        // Update a review
+        Route::put('/reviews/{reviewId}', [BookReviewController::class, 'update']);
+        
+        // Delete a review
+        Route::delete('/reviews/{reviewId}', [BookReviewController::class, 'destroy']);
+    });
 });

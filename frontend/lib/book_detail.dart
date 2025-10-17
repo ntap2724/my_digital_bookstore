@@ -532,7 +532,7 @@ class _ReviewsSection extends StatefulWidget {
 }
 
 class _ReviewsSectionState extends State<_ReviewsSection> {
-  String _sortBy = 'most_helpful'; // most_helpful, most_recent, highest, lowest
+  String _sortBy = 'most_helpful';
 
   List<BookReview> get _sortedReviews {
     final reviews = List<BookReview>.from(widget.reviews);
@@ -552,7 +552,6 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
         break;
       case 'most_helpful':
       default:
-        // Keep original order (backend should handle this)
         break;
     }
 
@@ -567,12 +566,12 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ✅ Header with divider
+        // ✅ Header
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: theme.dividerColor, width: 8),
+              bottom: BorderSide(color: theme.dividerColor, width: 1),
             ),
           ),
           child: Row(
@@ -588,7 +587,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
               if (!widget.loading && widget.totalReviews > 0)
                 IconButton(
                   icon: const Icon(Icons.keyboard_arrow_down),
-                  onPressed: () {}, // Could collapse section
+                  onPressed: () {},
                 ),
             ],
           ),
@@ -597,7 +596,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
         // ✅ Rating Summary
         if (widget.totalReviews > 0)
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: theme.dividerColor, width: 1),
@@ -606,7 +605,6 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left: Big number
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -631,10 +629,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                     ],
                   ),
                 ),
-
-                const SizedBox(width: 24),
-
-                // Right: Rating breakdown bars
+                const SizedBox(width: 32),
                 Expanded(
                   flex: 3,
                   child: _RatingBreakdown(
@@ -646,18 +641,35 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             ),
           ),
 
-        // ✅ Sort dropdown
+        // ✅ Review Composer (MOVED UP - before sort)
+        if (widget.bookOwned)
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            child: _ReviewComposer(
+              userReview: widget.userReview,
+              onSubmit: widget.onSubmitReview,
+            ),
+          ),
+
+        // ✅ Sort dropdown (MOVED DOWN - after composer)
         if (!widget.loading && widget.reviews.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
+              color: Colors.white,
               border: Border(
                 bottom: BorderSide(color: theme.dividerColor, width: 1),
               ),
             ),
             child: Row(
               children: [
-                Text(t.bookReviewSortBy, style: theme.textTheme.bodyMedium),
+                Text(
+                  t.bookReviewSortBy,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 DropdownButton<String>(
                   value: _sortBy,
@@ -687,21 +699,6 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                   },
                 ),
               ],
-            ),
-          ),
-
-        // ✅ Review Composer (if owned)
-        if (widget.bookOwned)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: theme.dividerColor, width: 8),
-              ),
-            ),
-            child: _ReviewComposer(
-              userReview: widget.userReview,
-              onSubmit: widget.onSubmitReview,
             ),
           ),
 
@@ -775,11 +772,18 @@ class _ReviewComposerState extends State<_ReviewComposer> {
       return;
     }
 
+    final comment = _commentController.text.trim();
+    if (comment.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập nội dung đánh giá')),
+      );
+      return;
+    }
+
     setState(() => _submitting = true);
 
     try {
-      // For now, only pass comment (title support needs backend update)
-      await widget.onSubmit(_rating, _commentController.text.trim());
+      await widget.onSubmit(_rating, comment);
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -797,15 +801,20 @@ class _ReviewComposerState extends State<_ReviewComposer> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          t.bookReviewComposerTitle,
+          isUpdate ? 'Cập nhật đánh giá' : 'Viết đánh giá của bạn',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 16),
 
-        // Rating selector
-        Text(t.bookReviewRatingLabel, style: theme.textTheme.bodyMedium),
+        // ✅ Rating selector
+        Text(
+          t.bookReviewRatingLabel,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         const SizedBox(height: 8),
         RatingSelector(
           rating: _rating,
@@ -814,23 +823,25 @@ class _ReviewComposerState extends State<_ReviewComposer> {
 
         const SizedBox(height: 16),
 
-        // Title field (optional for now, needs backend support)
+        // ✅ Title field (NOW ENABLED)
         TextField(
           controller: _titleController,
+          maxLength: 100,
           decoration: InputDecoration(
-            labelText: 'Title (optional)',
-            hintText: 'Summarize your review',
+            labelText: 'Tiêu đề',
+            hintText: 'Tóm tắt đánh giá của bạn trong một dòng',
             border: const OutlineInputBorder(),
+            counterText: '',
           ),
-          enabled: false, // Disable until backend supports it
         ),
 
         const SizedBox(height: 16),
 
-        // Comment field
+        // ✅ Comment field
         TextField(
           controller: _commentController,
           maxLines: 4,
+          maxLength: 1000,
           textAlignVertical: TextAlignVertical.top,
           decoration: InputDecoration(
             labelText: t.bookReviewCommentLabel,
@@ -842,7 +853,7 @@ class _ReviewComposerState extends State<_ReviewComposer> {
 
         const SizedBox(height: 16),
 
-        // Submit button
+        // ✅ Submit button
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton.icon(
@@ -960,21 +971,77 @@ class _RatingBar extends StatelessWidget {
   }
 }
 
-class _MSStoreReviewCard extends StatelessWidget {
+class _MSStoreReviewCard extends StatefulWidget {
   const _MSStoreReviewCard({required this.review});
 
   final BookReview review;
 
   @override
+  State<_MSStoreReviewCard> createState() => _MSStoreReviewCardState();
+}
+
+class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
+  bool _liked = false;
+  bool _disliked = false;
+  int _likeCount = 7; // TODO: Get from review.helpfulCount or similar
+  int _dislikeCount = 0; // TODO: Get from review.notHelpfulCount
+
+  void _toggleLike() {
+    setState(() {
+      if (_liked) {
+        // Unlike
+        _liked = false;
+        _likeCount--;
+      } else {
+        // Like
+        _liked = true;
+        _likeCount++;
+
+        // Remove dislike if active
+        if (_disliked) {
+          _disliked = false;
+          _dislikeCount--;
+        }
+      }
+    });
+
+    // TODO: Call API to save like
+    // Example: await CatalogService.instance.likeReview(widget.review.id);
+  }
+
+  void _toggleDislike() {
+    setState(() {
+      if (_disliked) {
+        // Remove dislike
+        _disliked = false;
+        _dislikeCount--;
+      } else {
+        // Dislike
+        _disliked = true;
+        _dislikeCount++;
+
+        // Remove like if active
+        if (_liked) {
+          _liked = false;
+          _likeCount--;
+        }
+      }
+    });
+
+    // TODO: Call API to save dislike
+    // Example: await CatalogService.instance.dislikeReview(widget.review.id);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = context.l10n;
     final theme = Theme.of(context);
-    final userName = review.user?['name']?.toString();
+    final userName = widget.review.user?['name']?.toString();
     final displayName = userName?.isNotEmpty == true
         ? userName!
         : t.bookReviewAnonymous;
-    final title = review.title?.trim().isNotEmpty == true
-        ? review.title!
+    final title = widget.review.title?.trim().isNotEmpty == true
+        ? widget.review.title!
         : t.bookReviewNoTitle;
 
     return Container(
@@ -982,33 +1049,36 @@ class _MSStoreReviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ✅ Rating stars
+          RatingStars(rating: widget.review.rating.toDouble(), size: 16),
+
+          const SizedBox(height: 8),
+
           // ✅ Title (bold)
           Text(
             title,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
-
-          const SizedBox(height: 8),
-
-          // ✅ Rating stars
-          RatingStars(rating: review.rating.toDouble(), size: 16),
 
           const SizedBox(height: 12),
 
           // ✅ Review content
-          if (review.comment != null && review.comment!.isNotEmpty) ...[
-            Text(review.comment!, style: theme.textTheme.bodyMedium),
+          if (widget.review.comment != null &&
+              widget.review.comment!.isNotEmpty) ...[
+            Text(widget.review.comment!, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
           ],
 
           // ✅ Footer: Author, Date, Actions
           Row(
             children: [
-              // Author
+              // Author & Date
               Expanded(
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       displayName,
@@ -1018,7 +1088,6 @@ class _MSStoreReviewCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Text(
                       '•',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -1027,9 +1096,8 @@ class _MSStoreReviewCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Text(
-                      _formatDate(review.createdAt),
+                      _formatDate(widget.review.createdAt),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.textTheme.bodySmall?.color?.withOpacity(
                           0.7,
@@ -1040,53 +1108,55 @@ class _MSStoreReviewCard extends StatelessWidget {
                 ),
               ),
 
-              // ✅ Helpful buttons
+              // ✅ Like/Dislike buttons (NO REPORT BUTTON)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Yes button
+                  // Like button
                   TextButton.icon(
-                    onPressed: () {
-                      // TODO: Implement helpful vote
-                    },
-                    icon: const Icon(Icons.thumb_up_outlined, size: 16),
-                    label: const Text('7'), // Placeholder count
+                    onPressed: _toggleLike,
+                    icon: Icon(
+                      _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                      size: 16,
+                      color: _liked ? theme.colorScheme.primary : null,
+                    ),
+                    label: Text(
+                      '$_likeCount',
+                      style: TextStyle(
+                        color: _liked ? theme.colorScheme.primary : null,
+                        fontWeight: _liked ? FontWeight.w600 : null,
+                      ),
+                    ),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: const Size(0, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(0, 36),
                     ),
                   ),
 
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
 
-                  // No button
+                  // Dislike button
                   TextButton.icon(
-                    onPressed: () {
-                      // TODO: Implement not helpful vote
-                    },
-                    icon: const Icon(Icons.thumb_down_outlined, size: 16),
-                    label: const Text('0'), // Placeholder count
+                    onPressed: _toggleDislike,
+                    icon: Icon(
+                      _disliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+                      size: 16,
+                      color: _disliked ? theme.colorScheme.error : null,
+                    ),
+                    label: Text(
+                      '$_dislikeCount',
+                      style: TextStyle(
+                        color: _disliked ? theme.colorScheme.error : null,
+                        fontWeight: _disliked ? FontWeight.w600 : null,
+                      ),
+                    ),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: const Size(0, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(0, 36),
                     ),
                   ),
 
-                  const SizedBox(width: 8),
-
-                  // Report button
-                  IconButton(
-                    onPressed: () {
-                      // TODO: Implement report
-                    },
-                    icon: const Icon(Icons.flag_outlined, size: 16),
-                    tooltip: t.bookReviewReport,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                  ),
+                  // ❌ REMOVED: Report button
                 ],
               ),
             ],
@@ -1104,20 +1174,22 @@ class _MSStoreReviewCard extends StatelessWidget {
 
     if (diff.inDays > 30) {
       final months = (diff.inDays / 30).floor();
-      return months == 1 ? 'About a month ago' : 'About $months months ago';
+      return months == 1
+          ? 'Khoảng 1 tháng trước'
+          : 'Khoảng $months tháng trước';
     } else if (diff.inDays > 7) {
       final weeks = (diff.inDays / 7).floor();
-      return weeks == 1 ? 'About a week ago' : 'About $weeks weeks ago';
+      return weeks == 1 ? 'Khoảng 1 tuần trước' : 'Khoảng $weeks tuần trước';
     } else if (diff.inDays > 0) {
       return diff.inDays == 1
-          ? 'About a day ago'
-          : 'About ${diff.inDays} days ago';
+          ? 'Khoảng 1 ngày trước'
+          : 'Khoảng ${diff.inDays} ngày trước';
     } else if (diff.inHours > 0) {
       return diff.inHours == 1
-          ? 'About an hour ago'
-          : 'About ${diff.inHours} hours ago';
+          ? 'Khoảng 1 giờ trước'
+          : 'Khoảng ${diff.inHours} giờ trước';
     } else {
-      return 'Just now';
+      return 'Vừa xong';
     }
   }
 }
