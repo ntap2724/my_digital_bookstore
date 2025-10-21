@@ -17,9 +17,7 @@ class BookAlreadyOwnedException implements Exception {
 }
 
 class CartService extends ChangeNotifier {
-  CartService._() {
-    _load();
-  }
+  CartService._(); // Lazy load to avoid early plugin initialization race
 
   static final CartService instance = CartService._();
 

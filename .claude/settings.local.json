@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub upgrade)",
+      "Bash(flutter analyze)",
+      "Bash(cat \"D:\\C++Learning\\Coding\\my_digital_bookstore\\frontend\\lib\\widgets\\app_navigation_menu.dart\")",
+      "Bash(flutter clean)",
+      "Bash(flutter run -d chrome --web-port=49769)",
+      "Bash(timeout 5)",
+      "Bash(flutter pub get)",
+      "Bash(flutter run -d chrome)",
+      "Bash(flutter pub run intl_utils:generate)",
+      "Bash(flutter gen-l10n)",
+      "Bash(timeout 10)",
+      "Bash(findstr /S /N /I /C:\"Transactions\" /C:\"Top-up requests\" /C:\"Open book\" /C:\"Purchased on\" *.dart)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

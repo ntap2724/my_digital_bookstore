@@ -8,7 +8,7 @@ import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/wallet_service.dart';
 import 'package:my_flutter_app/services/wallet_topup_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -480,10 +480,11 @@ class _WalletPageState extends State<WalletPage> {
 
     final wallet = _wallet;
 
-    return Scaffold(
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/wallet',
       appBar: AppBar(
         title: Text(t.wallet),
-
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             tooltip: t.refresh,
@@ -494,7 +495,6 @@ class _WalletPageState extends State<WalletPage> {
           ),
         ],
       ),
-      drawer: const AppNavigationMenu(currentRoute: '/wallet'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

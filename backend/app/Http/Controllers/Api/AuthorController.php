@@ -12,7 +12,9 @@ class AuthorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Author::query()->orderBy('name');
+        $query = Author::query()
+            ->withCount('books')
+            ->orderBy('name');
 
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(function ($q) use ($search) {
@@ -93,6 +95,7 @@ class AuthorController extends Controller
             'name' => $author->name,
             'slug' => $author->slug,
             'bio' => $author->bio,
+            'books_count' => $author->books_count ?? 0,
         ];
     }
 }

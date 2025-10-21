@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_flutter_app/config.dart';
-import 'package:my_flutter_app/services/navigation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginResult {
@@ -62,6 +61,12 @@ class AuthService extends ChangeNotifier {
   static final AuthService instance = AuthService._();
   String? _sessionToken; // in-memory token when not persisted
   String? _sessionOwnerId; // lowercase email/id owning the session token
+
+  // ✅ In-memory cache for user profile to avoid loading delay in navigation
+  static Map<String, dynamic>? _cachedProfile;
+
+  // ✅ Persistent cache key for profile
+  static const String _profileCacheKey = 'cached_user_profile';
 
   Uri _uri(String path) => Uri.parse('${AppConfig.apiBaseUrl}$path');
 
@@ -158,7 +163,7 @@ class AuthService extends ChangeNotifier {
     required bool acceptedTerms,
   }) async {
     final uri = _uri(AppConfig.simpleRegisterEndpoint);
-    // Normalize gender to server-expected values if client passes internal keys
+
     final serverGender = () {
       switch (gender) {
         case 'male':
@@ -171,6 +176,7 @@ class AuthService extends ChangeNotifier {
           return gender;
       }
     }();
+
     final serverGenderEn = _toEnglishGender(serverGender);
 
     final body = {
@@ -191,7 +197,6 @@ class AuthService extends ChangeNotifier {
             uri,
             headers: {
               'Accept': 'application/json',
-
               'Content-Type': 'application/json',
             },
             body: jsonEncode(body),
@@ -210,21 +215,38 @@ class AuthService extends ChangeNotifier {
           message: 'Thiếu token trong phản hồi',
         );
       }
-      // Do not persist this account locally yet; wait until the first real login.
-      // Navigate to login form after successful registration
+
+      // Auto-login the user after successful registration
+      await _persistLoginAccount(email: email, token: token);
+
+      // Enrich account with user's name
       try {
-        NavigationService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          '/login',
-          (r) => false,
-          arguments: {'email': email, 'displayName': name},
-        );
+        await _updateAccountName(id: email.toLowerCase(), name: name);
       } catch (_) {}
+
       return LoginResult(success: true, accessToken: token);
     }
 
     try {
       final data = _decodeJson(resp.body);
       final message = data['message']?.toString();
+
+      // Extract first validation error if available
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        for (final entry in errors.entries) {
+          final value = entry.value;
+          if (value is List && value.isNotEmpty) {
+            final errorMsg = value.first?.toString();
+            if (errorMsg != null && errorMsg.isNotEmpty) {
+              return LoginResult(success: false, message: errorMsg);
+            }
+          } else if (value is String && value.isNotEmpty) {
+            return LoginResult(success: false, message: value);
+          }
+        }
+      }
+
       return LoginResult(
         success: false,
         message: message ?? 'Đăng ký thất bại (${resp.statusCode})',
@@ -296,16 +318,37 @@ class AuthService extends ChangeNotifier {
       return LoginResult(success: true, accessToken: token);
     }
 
-    String? errorMsg;
     try {
       final data = _decodeJson(resp.body);
-      errorMsg = (data['error_description'] ?? data['message'] ?? data['error'])
+      final errorMsg = (data['error_description'] ?? data['message'] ?? data['error'])
           ?.toString();
-    } catch (_) {}
-    return LoginResult(
-      success: false,
-      message: errorMsg ?? 'Lỗi đăng nhập (${resp.statusCode})',
-    );
+
+      // Extract first validation error if available
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        for (final entry in errors.entries) {
+          final value = entry.value;
+          if (value is List && value.isNotEmpty) {
+            final firstError = value.first?.toString();
+            if (firstError != null && firstError.isNotEmpty) {
+              return LoginResult(success: false, message: firstError);
+            }
+          } else if (value is String && value.isNotEmpty) {
+            return LoginResult(success: false, message: value);
+          }
+        }
+      }
+
+      return LoginResult(
+        success: false,
+        message: errorMsg ?? 'Lỗi đăng nhập (${resp.statusCode})',
+      );
+    } catch (_) {
+      return LoginResult(
+        success: false,
+        message: 'Lỗi đăng nhập (${resp.statusCode})',
+      );
+    }
   }
 
   Future<LoginResult> _loginWithSimpleEndpoint({
@@ -359,15 +402,36 @@ class AuthService extends ChangeNotifier {
       return LoginResult(success: true, accessToken: token);
     }
 
-    String? errorMsg;
     try {
       final data = _decodeJson(resp.body);
-      errorMsg = data['message']?.toString();
-    } catch (_) {}
-    return LoginResult(
-      success: false,
-      message: errorMsg ?? 'Lỗi đăng nhập (${resp.statusCode})',
-    );
+      final message = data['message']?.toString();
+
+      // Extract first validation error if available
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        for (final entry in errors.entries) {
+          final value = entry.value;
+          if (value is List && value.isNotEmpty) {
+            final errorMsg = value.first?.toString();
+            if (errorMsg != null && errorMsg.isNotEmpty) {
+              return LoginResult(success: false, message: errorMsg);
+            }
+          } else if (value is String && value.isNotEmpty) {
+            return LoginResult(success: false, message: value);
+          }
+        }
+      }
+
+      return LoginResult(
+        success: false,
+        message: message ?? 'Lỗi đăng nhập (${resp.statusCode})',
+      );
+    } catch (_) {
+      return LoginResult(
+        success: false,
+        message: 'Lỗi đăng nhập (${resp.statusCode})',
+      );
+    }
   }
 
   // ---- Multi-account storage helpers ----
@@ -526,6 +590,7 @@ class AuthService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _sessionToken = null; // clear in-memory session token
     _sessionOwnerId = null;
+    clearProfileCache(); // ✅ Clear cached profile
     await _setActiveId(null);
     await prefs.remove('access_token');
   }
@@ -618,7 +683,11 @@ class AuthService extends ChangeNotifier {
 
   Future<Map<String, dynamic>?> me() async {
     final token = await getToken();
-    if (token == null) return null;
+    if (token == null) {
+      _cachedProfile = null; // Clear cache if no token
+      await _clearPersistedProfile(); // Clear persisted cache too
+      return null;
+    }
     final uri = _uri('/api/user');
     final resp = await http.get(
       uri,
@@ -627,14 +696,79 @@ class AuthService extends ChangeNotifier {
     if (resp.statusCode >= 200 && resp.statusCode < 300) {
       final data = _decodeJson(resp.body);
       final g = data['gender']?.toString();
+      Map<String, dynamic> profile;
       if (g != null) {
         final copy = Map<String, dynamic>.from(data);
         copy['gender'] = _toEnglishGender(g);
-        return copy;
+        profile = copy;
+      } else {
+        profile = data;
       }
-      return data;
+      _cachedProfile = profile; // ✅ Cache in memory
+      await _persistProfile(profile); // ✅ Persist to disk
+      return profile;
     }
     throw Exception('Lỗi tải thông tin (${resp.statusCode})');
+  }
+
+  /// Returns cached profile instantly without network call.
+  /// First checks in-memory cache, then falls back to persisted cache.
+  /// Returns null if not cached. Use me() to fetch fresh data.
+  Future<Map<String, dynamic>?> getCachedProfile() async {
+    // Return in-memory cache if available
+    if (_cachedProfile != null) return _cachedProfile;
+
+    // Load from persisted cache
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_profileCacheKey);
+      if (raw != null && raw.isNotEmpty) {
+        final profile = (jsonDecode(raw) as Map).cast<String, dynamic>();
+        _cachedProfile = profile; // Populate in-memory cache
+        return profile;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  /// Persists profile to SharedPreferences
+  Future<void> _persistProfile(Map<String, dynamic> profile) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_profileCacheKey, jsonEncode(profile));
+    } catch (_) {}
+  }
+
+  /// Clears persisted profile cache
+  Future<void> _clearPersistedProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_profileCacheKey);
+    } catch (_) {}
+  }
+
+  /// Clears the cached profile (called on logout)
+  Future<void> clearProfileCache() async {
+    _cachedProfile = null;
+    await _clearPersistedProfile();
+  }
+
+  /// Ensures profile is cached. Call this when app starts or after login.
+  /// If already cached, returns immediately. Otherwise fetches from network.
+  Future<void> ensureProfileCached() async {
+    // Check if already in memory or persisted
+    final cached = await getCachedProfile();
+    if (cached != null) return; // Already cached
+
+    final loggedIn = await isLoggedIn();
+    if (!loggedIn) return; // Not logged in, nothing to cache
+
+    try {
+      await me(); // This will populate both caches
+    } catch (_) {
+      // Ignore errors - menu will show default state
+    }
   }
 
   // Public helper: returns the ID (email lowercase) of the currently active session.

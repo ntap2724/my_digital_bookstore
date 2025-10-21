@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/settings_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
 import 'package:my_flutter_app/widgets/primary_button.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -65,13 +64,16 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final t = context.l10n;
     final divider = Divider(color: Theme.of(context).dividerColor);
-    return Scaffold(
-      appBar: AppBar(title: Text(t.settings)),
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/settings',
+      appBar: AppBar(
+        title: Text(t.settings),
+        automaticallyImplyLeading: false,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
         child: const Icon(Icons.mic),
       ),
-      drawer: const AppNavigationMenu(currentRoute: '/settings'),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
@@ -153,46 +155,46 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: _isAdmin
                   ? null
                   : () async {
-                final ctx = context;
-                final ok = await showDialog<bool>(
-                  context: ctx,
-                  builder: (dctx) => AlertDialog(
-                    title: Text(t.deleteAccount),
-                    content: Text(t.deleteAccountWarning),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(dctx).pop(false),
-                        child: Text(t.cancel),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade600,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
+                      final ctx = context;
+                      final ok = await showDialog<bool>(
+                        context: ctx,
+                        builder: (dctx) => AlertDialog(
+                          title: Text(t.deleteAccount),
+                          content: Text(t.deleteAccountWarning),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dctx).pop(false),
+                              child: Text(t.cancel),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade600,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                              ),
+                              onPressed: () => Navigator.of(dctx).pop(true),
+                              child: Text(t.deleteAccount),
+                            ),
+                          ],
                         ),
-                        onPressed: () => Navigator.of(dctx).pop(true),
-                        child: Text(t.deleteAccount),
-                      ),
-                    ],
-                  ),
-                );
-                if (ok != true) return;
-                final success = await AuthService.instance
-                    .deleteAccountPermanently();
-                if (!ctx.mounted) return;
-                if (success) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text(t.deleteAccountSuccess)),
-                  );
-                  Navigator.of(
-                    ctx,
-                  ).pushNamedAndRemoveUntil('/login', (r) => false);
-                } else {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text(t.deleteAccountFailed)),
-                  );
-                }
-              },
+                      );
+                      if (ok != true) return;
+                      final success = await AuthService.instance
+                          .deleteAccountPermanently();
+                      if (!ctx.mounted) return;
+                      if (success) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(t.deleteAccountSuccess)),
+                        );
+                        Navigator.of(
+                          ctx,
+                        ).pushNamedAndRemoveUntil('/login', (r) => false);
+                      } else {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(t.deleteAccountFailed)),
+                        );
+                      }
+                    },
               child: Text(t.deleteAccount),
             ),
             if (_isAdmin)
@@ -200,10 +202,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   t.userDeleteDisabled,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Theme.of(context).colorScheme.error),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
               ),
           ],
@@ -280,4 +281,3 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
-

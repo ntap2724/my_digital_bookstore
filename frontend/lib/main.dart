@@ -14,6 +14,7 @@ import 'package:my_flutter_app/my_books_page.dart';
 import 'package:my_flutter_app/orders_page.dart';
 import 'package:my_flutter_app/privacy.dart';
 import 'package:my_flutter_app/register.dart';
+import 'package:my_flutter_app/services/cart_service.dart';
 import 'package:my_flutter_app/services/navigation_service.dart';
 import 'package:my_flutter_app/services/settings_service.dart';
 import 'package:my_flutter_app/settings.dart';
@@ -29,6 +30,7 @@ void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   await SettingsController.instance.load();
+  await CartService.instance.ensureLoaded();
 
   runApp(const MyApp());
 }

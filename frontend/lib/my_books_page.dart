@@ -7,7 +7,7 @@ import 'package:my_flutter_app/models/paginated_result.dart';
 import 'package:my_flutter_app/models/user_book.dart';
 import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/library_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class MyBooksPage extends StatefulWidget {
   const MyBooksPage({super.key});
@@ -138,9 +138,13 @@ class _MyBooksPageState extends State<MyBooksPage> {
   Widget build(BuildContext context) {
     final t = context.l10n;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.myBooks)),
-      drawer: const AppNavigationMenu(currentRoute: '/my-books'),
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/my-books',
+      appBar: AppBar(
+        title: Text(t.myBooks),
+        automaticallyImplyLeading: false,
+      ),
+      // Removed drawer - now using ResponsiveNavigationWrapper
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

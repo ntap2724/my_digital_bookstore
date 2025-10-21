@@ -6,6 +6,7 @@ import 'package:my_flutter_app/models/book_review.dart';
 import 'package:my_flutter_app/models/category.dart';
 import 'package:my_flutter_app/models/paginated_result.dart';
 import 'package:my_flutter_app/services/api_client.dart';
+import 'package:my_flutter_app/services/auth_service.dart';
 
 class CatalogService {
   CatalogService._();
@@ -22,6 +23,8 @@ class CatalogService {
   final Map<String, Future<PaginatedResult<Book>>> _bookPending = {};
   List<Book>? _allBooksCache;
   Future<List<Book>>? _allBooksPending;
+  String? _allBooksCacheKey;
+  String? _currentOwnerKey;
 
   final Map<int, Map<String, dynamic>> _reviewsCache = {};
   final Map<int, Future<Map<String, dynamic>>> _reviewsPending = {};
@@ -148,6 +151,7 @@ class CatalogService {
     bool auth = false,
     bool forceRefresh = false,
   }) async {
+    final ownerKey = await _prepareOwnerKey(auth: auth);
     final key = _cacheKey('books', {
       'page': page,
       'per_page': perPage,
@@ -156,6 +160,7 @@ class CatalogService {
       'author_id': authorId,
       'status': status?.trim().toLowerCase(),
       'auth': auth,
+      'owner': ownerKey,
     });
 
     if (!forceRefresh) {
@@ -203,6 +208,14 @@ class CatalogService {
     bool forceRefresh = false,
     bool auth = false,
   }) async {
+    final ownerKey = await _prepareOwnerKey(auth: auth);
+
+    if (_allBooksCacheKey != ownerKey) {
+      _allBooksCache = null;
+      _allBooksPending = null;
+      _allBooksCacheKey = ownerKey;
+    }
+
     if (!forceRefresh) {
       final cached = _allBooksCache;
       if (cached != null) return List<Book>.unmodifiable(cached);
@@ -215,16 +228,22 @@ class CatalogService {
 
     final future = _fetchAllBooks(auth: auth)
         .then((books) {
-          _allBooksCache = books;
-          _allBooksPending = null;
+          if (_allBooksCacheKey == ownerKey) {
+            _allBooksCache = books;
+            _allBooksPending = null;
+          }
           return List<Book>.unmodifiable(books);
         })
         .catchError((error) {
-          _allBooksPending = null;
+          if (_allBooksCacheKey == ownerKey) {
+            _allBooksPending = null;
+          }
           throw error;
         });
 
-    _allBooksPending = future;
+    if (_allBooksCacheKey == ownerKey) {
+      _allBooksPending = future;
+    }
     return future;
   }
 
@@ -261,6 +280,7 @@ class CatalogService {
     bool forceRefresh = false,
     bool auth = true,
   }) async {
+    await _prepareOwnerKey(auth: auth);
     if (forceRefresh) {
       _reviewsCache.remove(bookId);
       _reviewsPending.remove(bookId);
@@ -279,7 +299,7 @@ class CatalogService {
           debugPrint('📦 Raw API Response:');
           debugPrint('  - Full JSON keys: ${json.keys.join(', ')}');
 
-          final reviewsData = json['data'];
+          final reviewsData = json['reviews'];
           final reviews = reviewsData is List
               ? reviewsData
                     .whereType<Map<String, dynamic>>()
@@ -314,9 +334,23 @@ class CatalogService {
               debugPrint('✅ Rating breakdown: $ratingBreakdown');
             }
           } else {
-            // Fallback: calculate from reviews
+            // Fallback: parse from root level (new API format)
             averageRating = (json['average_rating'] as num?)?.toDouble() ?? 0.0;
             totalReviews = (json['total_reviews'] as num?)?.toInt() ?? 0;
+
+            // ✅ Parse rating breakdown from root level
+            final breakdown = json['rating_breakdown'];
+            if (breakdown is Map) {
+              breakdown.forEach((key, value) {
+                final rating = int.tryParse(key.toString());
+                final count = value is int
+                    ? value
+                    : (value as num?)?.toInt() ?? 0;
+                if (rating != null) {
+                  ratingBreakdown[rating] = count;
+                }
+              });
+            }
           }
 
           // Calculate from reviews if still empty
@@ -361,6 +395,7 @@ class CatalogService {
     int bookId, {
     bool forceRefresh = false,
   }) async {
+    await _prepareOwnerKey(auth: true);
     if (forceRefresh) {
       _userReviewCache.remove(bookId);
       _userReviewPending.remove(bookId);
@@ -377,35 +412,58 @@ class CatalogService {
     // ✅ Tạo async function riêng với try-catch
     Future<BookReview?> fetchUserReview() async {
       try {
-        debugPrint('👤 Fetching user review...');
+        debugPrint('Fetching user review...');
         final json = await _client.getJson(
           '/api/books/$bookId/my-review',
           auth: true,
         );
 
-        debugPrint('✅ User review response received');
-        final review = BookReview.fromJson(_unwrap(json));
+        debugPrint('User review response received');
+        final payload = json['data'] ?? json['review'];
+        if (payload == null) {
+          debugPrint('User review payload is null');
+          _userReviewCache[bookId] = null;
+          _userReviewPending.remove(bookId);
+          return null;
+        }
+
+        Map<String, dynamic>? reviewJson;
+        if (payload is Map<String, dynamic>) {
+          reviewJson = payload;
+        } else if (payload is Map) {
+          reviewJson = Map<String, dynamic>.from(payload);
+        }
+
+        if (reviewJson == null) {
+          debugPrint('Unexpected user review payload: $payload');
+          _userReviewCache[bookId] = null;
+          _userReviewPending.remove(bookId);
+          return null;
+        }
+
+        final review = BookReview.fromJson(reviewJson);
         _userReviewCache[bookId] = review;
         _userReviewPending.remove(bookId);
         return review;
       } catch (error) {
-        debugPrint('⚠️ Error fetching user review: $error');
+        debugPrint('Error fetching user review: $error');
         _userReviewCache[bookId] = null;
         _userReviewPending.remove(bookId);
 
-        // Nếu là 404 hoặc route not found, return null (user chưa review)
+        // Treat 404 or missing route as "no review yet"
         if (error is ApiException &&
             (error.statusCode == 404 ||
                 error.message.contains('could not be found'))) {
-          debugPrint('ℹ️ User has not reviewed yet');
+          debugPrint('User has not reviewed yet');
           return null;
         }
 
-        // Các lỗi khác cũng return null thay vì throw
-        debugPrint('⚠️ Other error, returning null');
+        // Return null for other errors instead of throwing
+        debugPrint('Other error, returning null');
         return null;
       }
     }
+
 
     final future = fetchUserReview();
     _userReviewPending[bookId] = future;
@@ -416,12 +474,15 @@ class CatalogService {
   Future<BookReview> submitReview({
     required int bookId,
     required int rating,
+    String? title,
     String? comment,
   }) async {
-    final trimmed = comment?.trim();
+    final trimmedTitle = title?.trim();
+    final trimmedComment = comment?.trim();
     final payload = <String, dynamic>{
       'rating': rating,
-      if (trimmed != null && trimmed.isNotEmpty) 'comment': trimmed,
+      if (trimmedTitle != null && trimmedTitle.isNotEmpty) 'title': trimmedTitle,
+      if (trimmedComment != null && trimmedComment.isNotEmpty) 'comment': trimmedComment,
     };
     final json = await _client.postJson(
       '/api/books/$bookId/reviews',
@@ -443,12 +504,15 @@ class CatalogService {
     required int bookId,
     required int reviewId,
     required int rating,
+    String? title,
     String? comment,
   }) async {
-    final trimmed = comment?.trim();
+    final trimmedTitle = title?.trim();
+    final trimmedComment = comment?.trim();
     final payload = <String, dynamic>{
       'rating': rating,
-      if (trimmed != null && trimmed.isNotEmpty) 'comment': trimmed,
+      if (trimmedTitle != null && trimmedTitle.isNotEmpty) 'title': trimmedTitle,
+      if (trimmedComment != null && trimmedComment.isNotEmpty) 'comment': trimmedComment,
     };
     final json = await _client.putJson(
       '/api/books/$bookId/reviews/$reviewId',
@@ -492,6 +556,33 @@ class CatalogService {
     invalidateBooks();
   }
 
+  // ==================== AUTHOR CRUD METHODS ====================
+
+  Future<Author> createAuthor(Map<String, dynamic> payload) async {
+    final json = await _client.postJson(
+      '/api/authors',
+      body: payload,
+      auth: true,
+    );
+    invalidateAuthors();
+    return Author.fromJson(_unwrap(json));
+  }
+
+  Future<Author> updateAuthor(int id, Map<String, dynamic> payload) async {
+    final json = await _client.putJson(
+      '/api/authors/$id',
+      body: payload,
+      auth: true,
+    );
+    invalidateAuthors();
+    return Author.fromJson(_unwrap(json));
+  }
+
+  Future<void> deleteAuthor(int id) async {
+    await _client.deleteJson('/api/authors/$id', auth: true);
+    invalidateAuthors();
+  }
+
   // ==================== CACHE INVALIDATION ====================
 
   void invalidateCache() {
@@ -503,6 +594,7 @@ class CatalogService {
     _bookPending.clear();
     _allBooksCache = null;
     _allBooksPending = null;
+    _allBooksCacheKey = null;
     _reviewsCache.clear();
     _reviewsPending.clear();
     _userReviewCache.clear();
@@ -514,6 +606,11 @@ class CatalogService {
     _bookPending.clear();
     _allBooksCache = null;
     _allBooksPending = null;
+  }
+
+  void invalidateAuthors() {
+    _authorCache.clear();
+    _authorPending.clear();
   }
 
   void invalidateReviews(int bookId) {
@@ -580,15 +677,144 @@ class CatalogService {
           ..sort();
     return '$prefix:${entries.join('&')}';
   }
-}
 
-Map<String, dynamic> _unwrap(Map<String, dynamic> json) {
-  final data = json['data'];
-  if (data is Map<String, dynamic>) {
-    return data;
+  /// Vote on a review (like or dislike)
+  Future<Map<String, dynamic>> voteReview(
+    int reviewId,
+    String voteType, // 'like' or 'dislike'
+  ) async {
+    if (voteType != 'like' && voteType != 'dislike') {
+      throw ArgumentError('voteType must be "like" or "dislike"');
+    }
+
+    try {
+      final response = await _client.postJson(
+        '/api/reviews/$reviewId/vote',
+        body: {'vote_type': voteType},
+        auth: true,
+      );
+
+      return {
+        'success': response['success'] as bool? ?? true,
+        'action': response['action'] as String? ?? 'created',
+        'helpful_count': response['helpful_count'] as int? ?? 0,
+        'not_helpful_count': response['not_helpful_count'] as int? ?? 0,
+        'user_vote': response['user_vote'] as String?,
+      };
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to vote on review: $e');
+    }
   }
-  if (data is Map) {
-    return Map<String, dynamic>.from(data);
+
+  /// Remove vote from a review
+  Future<Map<String, dynamic>> removeVote(int reviewId) async {
+    try {
+      final response = await _client.deleteJson(
+        '/api/reviews/$reviewId/vote',
+        auth: true,
+      );
+
+      return {
+        'success': response['success'] as bool? ?? true,
+        'helpful_count': response['helpful_count'] as int? ?? 0,
+        'not_helpful_count': response['not_helpful_count'] as int? ?? 0,
+        'user_vote': null,
+      };
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to remove vote: $e');
+    }
   }
-  return json;
+
+  /// Get vote status for a review
+  Future<Map<String, dynamic>> getVoteStatus(int reviewId) async {
+    try {
+      final response = await _client.getJson(
+        '/api/reviews/$reviewId/vote',
+        auth: true,
+      );
+
+      return {
+        'review_id': response['review_id'] as int,
+        'helpful_count': response['helpful_count'] as int? ?? 0,
+        'not_helpful_count': response['not_helpful_count'] as int? ?? 0,
+        'user_vote': response['user_vote'] as String?,
+      };
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to get vote status: $e');
+    }
+  }
+
+  /// Toggle like on a review (helper method)
+  Future<Map<String, dynamic>> toggleLike(
+    int reviewId,
+    String? currentVote,
+  ) async {
+    if (currentVote == 'like') {
+      // Remove like
+      return await removeVote(reviewId);
+    } else {
+      // Add like (will auto-remove dislike if exists)
+      return await voteReview(reviewId, 'like');
+    }
+  }
+
+  /// Toggle dislike on a review (helper method)
+  Future<Map<String, dynamic>> toggleDislike(
+    int reviewId,
+    String? currentVote,
+  ) async {
+    if (currentVote == 'dislike') {
+      // Remove dislike
+      return await removeVote(reviewId);
+    } else {
+      // Add dislike (will auto-remove like if exists)
+      return await voteReview(reviewId, 'dislike');
+    }
+  }
+
+  Future<String> _resolveOwnerKey({required bool auth}) async {
+    if (!auth) return '__public__';
+    final id = await AuthService.instance.getCurrentActiveId();
+    if (id == null || id.isEmpty) return '__guest__';
+    return 'user:$id';
+  }
+
+  Future<String> _prepareOwnerKey({required bool auth}) async {
+    final key = await _resolveOwnerKey(auth: auth);
+    if (auth && _currentOwnerKey != key) {
+      _currentOwnerKey = key;
+      _clearUserScopedCaches();
+    }
+    return key;
+  }
+
+  void _clearUserScopedCaches() {
+    _allBooksCache = null;
+    _allBooksPending = null;
+    _allBooksCacheKey = null;
+    _bookCache.clear();
+    _bookPending.clear();
+    _reviewsCache.clear();
+    _reviewsPending.clear();
+    _userReviewCache.clear();
+    _userReviewPending.clear();
+    _ownedBookNotifier.value = null;
+  }
+
+  Map<String, dynamic> _unwrap(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    return json;
+  }
 }

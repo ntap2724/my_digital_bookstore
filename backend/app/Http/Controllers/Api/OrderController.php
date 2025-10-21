@@ -118,7 +118,7 @@ class OrderController extends Controller
 
         if ($wallet->balance < $total) {
             return response()->json([
-                'message' => 'Ví c?a b?n không d? credit d? thanh toán don hàng.',
+                'message' => 'Ví của bạn không đủ credit để thanh toán đơn hàng.',
             ], 422);
         }
 
@@ -217,7 +217,7 @@ class OrderController extends Controller
                 'balance_after' => $balanceAfter,
                 'order_id' => $order->id,
                 'performed_by' => $user->id,
-                'description' => 'Thanh toán don hàng',
+                'description' => 'Thanh toán đơn hàng',
                 'meta' => ['items' => collect($itemPayloads)->map(fn ($i) => $i['book']->title)],
             ]);
         });
@@ -235,12 +235,12 @@ class OrderController extends Controller
         $isAdmin = $user && Gate::forUser($user)->allows('admin');
 
         if (! $isAdmin && $order->user_id !== $user?->id) {
-            abort(403, 'B?n không th? h?y don hàng này.');
+            abort(403, 'Bạn không thể hủy đơn hàng này.');
         }
 
         if ($order->status === 'cancelled') {
             return response()->json([
-                'message' => 'Ðon hàng dã du?c h?y tru?c dó.',
+                'message' => 'Đơn hàng đã được hủy trước đó.',
             ], 422);
         }
 
@@ -263,7 +263,7 @@ class OrderController extends Controller
                 'balance_after' => $wallet->balance,
                 'order_id' => $order->id,
                 'performed_by' => $isAdmin ? $user?->id : $order->user_id,
-                'description' => 'Hoàn ti?n do h?y don hàng',
+                'description' => 'Hoàn tiền do hủy đơn hàng',
                 'meta' => Arr::whereNotNull([
                     'reason' => $request->input('reason'),
                 ]),
@@ -315,7 +315,7 @@ class OrderController extends Controller
         $isAdmin = $user && Gate::forUser($user)->allows('admin');
 
         if (! $isAdmin && $order->user_id !== $user?->id) {
-            abort(403, 'B?n không th? xem don hàng này.');
+            abort(403, 'Bạn không thể xem đơn hàng này.');
         }
     }
 

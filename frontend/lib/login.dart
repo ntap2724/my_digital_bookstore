@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/widgets/app_form_field.dart';
+import 'package:my_flutter_app/widgets/bookstore_hero.dart';
+import 'package:my_flutter_app/widgets/gradient_card.dart';
 import 'package:my_flutter_app/widgets/link_button.dart';
 import 'package:my_flutter_app/widgets/primary_button.dart';
 
@@ -168,46 +170,29 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 16 : 20,
+                vertical: isSmallScreen ? 16 : 24,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top bar: Only Accounts button (right aligned)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        tooltip: t.manageAccounts,
-                        onPressed: _loading
-                            ? null
-                            : () =>
-                                  Navigator.of(context).pushNamed('/accounts'),
-                        icon: const Icon(Icons.switch_account_outlined),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Lock icon
-                  const CircleAvatar(
-                    radius: 40,
-                    child: Icon(Icons.lock_open, size: 40),
-                  ),
-                  const SizedBox(height: 20),
-                  // Title
-                  Text(
-                    t.login,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  // Hero Section
+                  if (!_emailConfirmed)
+                    BookStoreHero(
+                      icon: Icons.menu_book_rounded,
+                      title: t.login,
+                      iconSize: isSmallScreen ? 40 : 48,
                     ),
-                  ),
-                  const SizedBox(height: 32),
                   // User badge (shown after email confirmation)
                   Builder(
                     builder: (context) {
@@ -245,40 +230,65 @@ class _LoginPageState extends State<LoginPage> {
                       final avatarText = avatarSource.isNotEmpty
                           ? avatarSource[0].toUpperCase()
                           : '?';
-                      return Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 32,
-                            child: Text(
-                              avatarText,
-                              style: const TextStyle(fontSize: 24),
+
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        child: SizedBox(
+                          key: ValueKey(email),
+                          width: double.infinity,
+                          child: GradientCard(
+                            elevation: 2,
+                            margin: EdgeInsets.zero,
+                            padding: const EdgeInsets.all(24),
+                            borderRadius: 16,
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 36,
+                                    backgroundColor:
+                                        Theme.of(context).colorScheme.primaryContainer,
+                                    child: Text(
+                                      avatarText,
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  displayName,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  email,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            displayName,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            email,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
+                        ),
                       );
                     },
                   ),
+                  if (_emailConfirmed) const SizedBox(height: 16),
                   if (_emailConfirmed) ...[
-                    LinkButton(
-                      context.l10n.signInWithAnotherEmail,
-                      centered: true,
+                    FilledButton.tonalIcon(
                       onPressed: () {
                         setState(() {
                           _emailConfirmed = false;
@@ -286,8 +296,13 @@ class _LoginPageState extends State<LoginPage> {
                         });
                         Future.microtask(() => _emailFocus.requestFocus());
                       },
+                      icon: const Icon(Icons.swap_horiz, size: 20),
+                      label: Text(context.l10n.signInWithAnotherEmail),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: isSmallScreen ? 20 : 24),
                   ],
                   // Form
                   Form(
@@ -331,7 +346,7 @@ class _LoginPageState extends State<LoginPage> {
                                   _emailConfirmed ? null : _confirmEmail(),
                             ),
                           if (_emailConfirmed == false)
-                            const SizedBox(height: 24),
+                            SizedBox(height: isSmallScreen ? 20 : 24),
                           // Email field (read-only when confirmed)
                           if (_emailConfirmed == true)
                             AppFormField(
@@ -376,64 +391,60 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           // Remember password checkbox
                           if (_emailConfirmed == true)
-                            const SizedBox(height: 12),
+                            SizedBox(height: isSmallScreen ? 16 : 12),
                           if (_emailConfirmed == true)
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _remember,
-                                  onChanged: _loading
-                                      ? null
-                                      : (v) => setState(
-                                          () => _remember = v ?? false,
-                                        ),
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    Localizations.localeOf(
-                                              context,
-                                            ).languageCode ==
-                                            'vi'
-                                        ? 'Nhớ mật khẩu'
-                                        : 'Remember password',
-                                  ),
-                                ),
-                              ],
+                            CheckboxListTile(
+                              value: _remember,
+                              contentPadding: EdgeInsets.zero,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              onChanged: _loading
+                                  ? null
+                                  : (v) => setState(
+                                      () => _remember = v ?? false,
+                                    ),
+                              title: Text(
+                                Localizations.localeOf(context).languageCode == 'vi'
+                                    ? 'Nhớ mật khẩu'
+                                    : 'Remember password',
+                              ),
                             ),
                           if (_emailConfirmed == true)
-                            const SizedBox(height: 24),
+                            SizedBox(height: isSmallScreen ? 20 : 24),
                           if (_emailConfirmed == false) const SizedBox.shrink(),
                           // Primary button (Continue or Login)
-                          PrimaryButton.icon(
-                            onPressed: _loading
-                                ? null
-                                : (_emailConfirmed == true
-                                      ? _doLogin
-                                      : _confirmEmail),
-                            icon: _loading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Icon(
-                                    _emailConfirmed == true
-                                        ? Icons.login
-                                        : Icons.arrow_forward,
-                                  ),
-                            label: Text(
-                              _loading
-                                  ? t.loggingIn
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: PrimaryButton.icon(
+                              onPressed: _loading
+                                  ? null
                                   : (_emailConfirmed == true
-                                        ? t.login
-                                        : t.continueAction),
+                                        ? _doLogin
+                                        : _confirmEmail),
+                              icon: _loading
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Icon(
+                                      _emailConfirmed == true
+                                          ? Icons.login
+                                          : Icons.arrow_forward,
+                                    ),
+                              label: Text(
+                                _loading
+                                    ? t.loggingIn
+                                    : (_emailConfirmed == true
+                                          ? t.login
+                                          : t.continueAction),
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: 24),
+                        SizedBox(height: isSmallScreen ? 20 : 24),
                         // Register link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,

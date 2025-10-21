@@ -12,6 +12,40 @@ use Illuminate\Support\Facades\Gate;
 
 class BookReviewController extends Controller
 {
+    private function formatReview(BookReview $review, ?int $currentUserId = null): array
+    {
+        $review->loadMissing('user:id,name,email');
+
+        $data = [
+            'id' => $review->id,
+            'book_id' => $review->book_id,
+            'user_id' => $review->user_id,
+            'rating' => (int) $review->rating,
+            'title' => $review->title,
+            'comment' => $review->comment,
+            'helpful_count' => (int) $review->helpful_count,
+            'not_helpful_count' => (int) $review->not_helpful_count,
+            'created_at' => optional($review->created_at)->toIso8601String(),
+            'updated_at' => optional($review->updated_at)->toIso8601String(),
+            'user' => $review->user ? [
+                'id' => $review->user->id,
+                'name' => $review->user->name,
+                'email' => $review->user->email,
+            ] : null,
+            'user_vote' => null,
+        ];
+
+        if ($currentUserId) {
+            $userVote = $review->votes()
+                ->where('user_id', $currentUserId)
+                ->first();
+
+            $data['user_vote'] = $userVote ? $userVote->vote_type : null;
+        }
+
+        return $data;
+    }
+
     /**
      * Get all reviews for a book
      * ✅ UPDATED: Include vote counts and user's vote status
@@ -28,35 +62,7 @@ class BookReviewController extends Controller
         $currentUserId = Auth::id();
         
         $reviewsData = $reviews->map(function ($review) use ($currentUserId) {
-            $data = [
-                'id' => $review->id,
-                'book_id' => $review->book_id,
-                'user_id' => $review->user_id,
-                'rating' => (int) $review->rating,
-                'title' => $review->title,
-                'comment' => $review->comment,
-                'helpful_count' => (int) $review->helpful_count,
-                'not_helpful_count' => (int) $review->not_helpful_count,
-                'created_at' => optional($review->created_at)->toIso8601String(),
-                'updated_at' => optional($review->updated_at)->toIso8601String(),
-                'user' => $review->user ? [
-                    'id' => $review->user->id,
-                    'name' => $review->user->name,
-                    'email' => $review->user->email,
-                ] : null,
-            ];
-
-            // Add user's vote if authenticated
-            if ($currentUserId) {
-                $userVote = $review->votes()
-                    ->where('user_id', $currentUserId)
-                    ->first();
-                $data['user_vote'] = $userVote ? $userVote->vote_type : null;
-            } else {
-                $data['user_vote'] = null;
-            }
-
-            return $data;
+            return $this->formatReview($review, $currentUserId);
         });
 
         // Calculate rating breakdown
@@ -105,35 +111,14 @@ class BookReviewController extends Controller
 
         if (!$review) {
             return response()->json([
-                'review' => null, // ✅ Return null instead of 404
+                'data' => null,
             ]);
         }
 
-        // Get user's own vote on their review (usually not applicable, but included for consistency)
-        $userVote = $review->votes()
-            ->where('user_id', Auth::id())
-            ->first();
-
         return response()->json([
-            'review' => [
-                'id' => $review->id,
-                'book_id' => $review->book_id,
-                'user_id' => $review->user_id,
-                'rating' => (int) $review->rating,
-                'title' => $review->title,
-                'comment' => $review->comment,
-                'helpful_count' => (int) $review->helpful_count,
-                'not_helpful_count' => (int) $review->not_helpful_count,
-                'user_vote' => $userVote ? $userVote->vote_type : null,
-                'created_at' => optional($review->created_at)->toIso8601String(),
-                'updated_at' => optional($review->updated_at)->toIso8601String(),
-                'user' => $review->user ? [
-                    'id' => $review->user->id,
-                    'name' => $review->user->name,
-                    'email' => $review->user->email,
-                ] : null,
-            ],
+            'data' => $this->formatReview($review, Auth::id()),
         ]);
+
     }
 
     /**
@@ -192,42 +177,28 @@ class BookReviewController extends Controller
 
         return response()->json([
             'message' => 'Review submitted successfully',
-            'review' => [
-                'id' => $review->id,
-                'book_id' => $review->book_id,
-                'user_id' => $review->user_id,
-                'rating' => (int) $review->rating,
-                'title' => $review->title,
-                'comment' => $review->comment,
-                'helpful_count' => 0,
-                'not_helpful_count' => 0,
-                'user_vote' => null,
-                'created_at' => optional($review->created_at)->toIso8601String(),
-                'updated_at' => optional($review->updated_at)->toIso8601String(),
-                'user' => $review->user ? [
-                    'id' => $review->user->id,
-                    'name' => $review->user->name,
-                    'email' => $review->user->email,
-                ] : null,
-            ],
+            'data' => $this->formatReview($review, Auth::id()),
         ], 201);
     }
 
     /**
      * Update an existing review
-     * ✅ NEW: Separate update method (better than updateOrCreate)
+     * ✅ FIXED: Use injected model with proper authorization check
      */
     public function update(Request $request, Book $book, BookReview $review)
     {
-        // Verify review belongs to this book
+        // Verify review belongs to the book
         if ($review->book_id !== $book->id) {
             return response()->json([
                 'message' => 'Review not found for this book.',
             ], 404);
         }
 
-        // Verify user owns this review
-        if ($review->user_id !== $request->user()->id) {
+        // Verify ownership (allow admins or review owner)
+        $user = $request->user();
+        $isAdmin = $user && Gate::forUser($user)->allows('admin');
+
+        if (!$user || (!$isAdmin && $review->user_id !== $user->id)) {
             return response()->json([
                 'message' => 'You can only update your own reviews.',
             ], 403);
@@ -247,31 +218,9 @@ class BookReviewController extends Controller
 
         $review->load('user:id,name,email');
 
-        // Get user's vote on this review
-        $userVote = $review->votes()
-            ->where('user_id', Auth::id())
-            ->first();
-
         return response()->json([
             'message' => 'Review updated successfully',
-            'review' => [
-                'id' => $review->id,
-                'book_id' => $review->book_id,
-                'user_id' => $review->user_id,
-                'rating' => (int) $review->rating,
-                'title' => $review->title,
-                'comment' => $review->comment,
-                'helpful_count' => (int) $review->helpful_count,
-                'not_helpful_count' => (int) $review->not_helpful_count,
-                'user_vote' => $userVote ? $userVote->vote_type : null,
-                'created_at' => optional($review->created_at)->toIso8601String(),
-                'updated_at' => optional($review->updated_at)->toIso8601String(),
-                'user' => $review->user ? [
-                    'id' => $review->user->id,
-                    'name' => $review->user->name,
-                    'email' => $review->user->email,
-                ] : null,
-            ],
+            'data' => $this->formatReview($review, Auth::id()),
         ]);
     }
 

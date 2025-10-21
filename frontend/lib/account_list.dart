@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
 import 'package:my_flutter_app/widgets/primary_button.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class AccountListPage extends StatefulWidget {
   const AccountListPage({super.key});
@@ -112,9 +112,12 @@ class _AccountListPageState extends State<AccountListPage> {
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
-    return Scaffold(
-      appBar: AppBar(title: Text(t.manageAccounts)),
-      drawer: const AppNavigationMenu(currentRoute: '/accounts'),
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/accounts',
+      appBar: AppBar(
+        title: Text(t.manageAccounts),
+        automaticallyImplyLeading: false,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _accounts.isEmpty

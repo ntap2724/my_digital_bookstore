@@ -161,7 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Book Review Routes
-Route::prefix('books/{bookId}')->group(function () {
+Route::prefix('books/{book}')->group(function () {
     // Get all reviews for a book (optional auth to include user votes)
     Route::get('/reviews', [BookReviewController::class, 'index']);
     
@@ -174,9 +174,9 @@ Route::prefix('books/{bookId}')->group(function () {
         Route::post('/reviews', [BookReviewController::class, 'store']);
         
         // Update a review
-        Route::put('/reviews/{reviewId}', [BookReviewController::class, 'update']);
-        
+        Route::put('/reviews/{review}', [BookReviewController::class, 'update']);
+
         // Delete a review
-        Route::delete('/reviews/{reviewId}', [BookReviewController::class, 'destroy']);
+        Route::delete('/reviews/{review}', [BookReviewController::class, 'destroy']);
     });
 });

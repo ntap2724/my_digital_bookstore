@@ -27,10 +27,3 @@ flutter:
   assets:
     - assets/l10n/en.json
     - assets/l10n/vi.json
-
-dependency_overrides:
-  characters: ^1.4.1
-  material_color_utilities: ^0.13.0
-  meta: ^1.17.0
-  test_api: ^0.7.7
-

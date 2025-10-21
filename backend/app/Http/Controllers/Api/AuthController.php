@@ -29,7 +29,7 @@ class AuthController extends Controller
             ], 404);
         }
 
-        $user->password = $credentials['password'];
+        $user->password = Hash::make($credentials['password']);
         $user->tokens()->delete();
         $user->save();
 
@@ -58,7 +58,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => $validated['password'],
+            'password' => Hash::make($validated['password']),
             'phone' => $validated['phone'],
             'dob' => $validated['dob'],
             'gender' => $validated['gender'],

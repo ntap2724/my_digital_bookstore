@@ -43,6 +43,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Map<int, int> _ratingBreakdown = {};
   bool _loadingReviews = true;
   BookReview? _userReview;
+  int? _currentUserId;
 
   @override
   void initState() {
@@ -103,6 +104,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
   }
 
+  Future<void> _loadCurrentUserId() async {
+    try {
+      final userData = await AuthService.instance.me();
+      if (!mounted) return;
+      setState(() {
+        _currentUserId = (userData?['id'] as num?)?.toInt();
+      });
+    } catch (e) {
+      // User not logged in or error - that's fine
+      if (!mounted) return;
+      setState(() => _currentUserId = null);
+    }
+  }
+
   Future<void> _loadReviews(int bookId) async {
     if (bookId <= 0) return;
 
@@ -111,6 +126,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
     try {
       final loggedIn = await AuthService.instance.isLoggedIn();
       debugPrint('🔐 User logged in: $loggedIn');
+
+      // Load current user ID if logged in
+      if (loggedIn) {
+        await _loadCurrentUserId();
+      }
 
       debugPrint('📥 Loading reviews...');
       final data = await _catalogService.getBookReviews(
@@ -161,7 +181,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
   }
 
-  Future<void> _submitReview(int rating, String? comment) async {
+  Future<void> _submitReview(int rating, String? title, String? comment) async {
     final book = _book;
     if (book == null) return;
 
@@ -186,6 +206,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           bookId: book.id,
           reviewId: _userReview!.id,
           rating: rating,
+          title: title,
           comment: comment,
         );
         debugPrint('✅ Review updated: ID=${newReview.id}');
@@ -194,6 +215,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         newReview = await _catalogService.submitReview(
           bookId: book.id,
           rating: rating,
+          title: title,
           comment: comment,
         );
         debugPrint('✅ Review created: ID=${newReview.id}');
@@ -368,6 +390,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     userReview: _userReview,
                     bookOwned: book.owned,
                     onSubmitReview: _submitReview,
+                    currentUserId: _currentUserId,
                   ),
                 ],
               ),
@@ -516,6 +539,7 @@ class _ReviewsSection extends StatefulWidget {
     required this.userReview,
     required this.bookOwned,
     required this.onSubmitReview,
+    this.currentUserId,
   });
 
   final List<BookReview> reviews;
@@ -525,7 +549,8 @@ class _ReviewsSection extends StatefulWidget {
   final bool loading;
   final BookReview? userReview;
   final bool bookOwned;
-  final Function(int rating, String? comment) onSubmitReview;
+  final Function(int rating, String? title, String? comment) onSubmitReview;
+  final int? currentUserId;
 
   @override
   State<_ReviewsSection> createState() => _ReviewsSectionState();
@@ -621,8 +646,8 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                       Text(
                         t.bookRatingCount(widget.totalReviews),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodySmall?.color?.withOpacity(
-                            0.7,
+                          color: theme.textTheme.bodySmall?.color?.withValues(
+                            alpha: 0.7,
                           ),
                         ),
                       ),
@@ -645,7 +670,9 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
         if (widget.bookOwned)
           Container(
             padding: const EdgeInsets.all(16),
-            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
             child: _ReviewComposer(
               userReview: widget.userReview,
               onSubmit: widget.onSubmitReview,
@@ -723,7 +750,10 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             separatorBuilder: (_, _) =>
                 Divider(height: 1, thickness: 1, color: theme.dividerColor),
             itemBuilder: (context, index) {
-              return _MSStoreReviewCard(review: _sortedReviews[index]);
+              return _MSStoreReviewCard(
+                review: _sortedReviews[index],
+                currentUserId: widget.currentUserId,
+              );
             },
           ),
       ],
@@ -735,7 +765,7 @@ class _ReviewComposer extends StatefulWidget {
   const _ReviewComposer({required this.userReview, required this.onSubmit});
 
   final BookReview? userReview;
-  final Function(int rating, String? comment) onSubmit;
+  final Function(int rating, String? title, String? comment) onSubmit;
 
   @override
   State<_ReviewComposer> createState() => _ReviewComposerState();
@@ -772,10 +802,12 @@ class _ReviewComposerState extends State<_ReviewComposer> {
       return;
     }
 
+    final title = _titleController.text.trim();
     final comment = _commentController.text.trim();
     if (comment.isEmpty) {
+      final t = context.l10n;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập nội dung đánh giá')),
+        SnackBar(content: Text(t.bookReviewContentRequired)),
       );
       return;
     }
@@ -783,7 +815,7 @@ class _ReviewComposerState extends State<_ReviewComposer> {
     setState(() => _submitting = true);
 
     try {
-      await widget.onSubmit(_rating, comment);
+      await widget.onSubmit(_rating, title, comment);
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -801,7 +833,7 @@ class _ReviewComposerState extends State<_ReviewComposer> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isUpdate ? 'Cập nhật đánh giá' : 'Viết đánh giá của bạn',
+          isUpdate ? t.bookReviewComposerUpdateTitle : t.bookReviewComposerTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -828,8 +860,8 @@ class _ReviewComposerState extends State<_ReviewComposer> {
           controller: _titleController,
           maxLength: 100,
           decoration: InputDecoration(
-            labelText: 'Tiêu đề',
-            hintText: 'Tóm tắt đánh giá của bạn trong một dòng',
+            labelText: t.bookReviewTitleLabel,
+            hintText: t.bookReviewTitleHint,
             border: const OutlineInputBorder(),
             counterText: '',
           ),
@@ -972,32 +1004,81 @@ class _RatingBar extends StatelessWidget {
 }
 
 class _MSStoreReviewCard extends StatefulWidget {
-  const _MSStoreReviewCard({required this.review});
+  const _MSStoreReviewCard({required this.review, this.currentUserId});
 
   final BookReview review;
+  final int? currentUserId;
 
   @override
   State<_MSStoreReviewCard> createState() => _MSStoreReviewCardState();
 }
 
 class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
-  bool _liked = false;
-  bool _disliked = false;
-  int _likeCount = 7; // TODO: Get from review.helpfulCount or similar
-  int _dislikeCount = 0; // TODO: Get from review.notHelpfulCount
+  late bool _liked;
+  late bool _disliked;
+  late int _likeCount;
+  late int _dislikeCount;
+  bool _isUpdating = false;
+  String? _currentUserVote; // ✅ Track current vote state across clicks
 
-  void _toggleLike() {
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Initialize from backend data
+    _initializeVoteState();
+  }
+
+  @override
+  void didUpdateWidget(_MSStoreReviewCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ✅ Update when review data changes
+    if (oldWidget.review.id != widget.review.id ||
+        oldWidget.review.userVote != widget.review.userVote ||
+        oldWidget.review.helpfulCount != widget.review.helpfulCount ||
+        oldWidget.review.notHelpfulCount != widget.review.notHelpfulCount) {
+      _initializeVoteState();
+    }
+  }
+
+  void _initializeVoteState() {
+    _likeCount = widget.review.helpfulCount;
+    _dislikeCount = widget.review.notHelpfulCount;
+    _currentUserVote = widget.review.userVote; // ✅ Initialize current vote
+    _liked = _currentUserVote == 'like';
+    _disliked = _currentUserVote == 'dislike';
+  }
+
+  bool get _isOwnReview =>
+      widget.currentUserId != null &&
+      widget.review.userId == widget.currentUserId;
+
+  Future<void> _toggleLike() async {
+    if (_isUpdating) return;
+
+    // Check if user is logged in
+    final isLoggedIn = await AuthService.instance.isLoggedIn();
+    if (!isLoggedIn) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng đăng nhập để đánh giá')),
+      );
+      return;
+    }
+
+    // Optimistic update
+    final previousLiked = _liked;
+    final previousDisliked = _disliked;
+    final previousLikeCount = _likeCount;
+    final previousDislikeCount = _dislikeCount;
+
     setState(() {
+      _isUpdating = true;
       if (_liked) {
-        // Unlike
         _liked = false;
         _likeCount--;
       } else {
-        // Like
         _liked = true;
         _likeCount++;
-
-        // Remove dislike if active
         if (_disliked) {
           _disliked = false;
           _dislikeCount--;
@@ -1005,22 +1086,68 @@ class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
       }
     });
 
-    // TODO: Call API to save like
-    // Example: await CatalogService.instance.likeReview(widget.review.id);
+    try {
+      final result = await CatalogService.instance.toggleLike(
+        widget.review.id,
+        _currentUserVote, // ✅ Use current vote state, not widget.review.userVote
+      );
+
+      if (!mounted) return;
+
+      // Update with actual values from backend
+      setState(() {
+        _likeCount = result['helpful_count'] as int;
+        _dislikeCount = result['not_helpful_count'] as int;
+        final userVote = result['user_vote'] as String?;
+        _currentUserVote = userVote; // ✅ Update current vote state
+        _liked = userVote == 'like';
+        _disliked = userVote == 'dislike';
+        _isUpdating = false;
+      });
+    } catch (e) {
+      // Rollback on error
+      if (!mounted) return;
+      setState(() {
+        _liked = previousLiked;
+        _disliked = previousDisliked;
+        _likeCount = previousLikeCount;
+        _dislikeCount = previousDislikeCount;
+        _isUpdating = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể cập nhật: ${e.toString()}')),
+      );
+    }
   }
 
-  void _toggleDislike() {
+  Future<void> _toggleDislike() async {
+    if (_isUpdating) return;
+
+    // Check if user is logged in
+    final isLoggedIn = await AuthService.instance.isLoggedIn();
+    if (!isLoggedIn) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng đăng nhập để đánh giá')),
+      );
+      return;
+    }
+
+    // Optimistic update
+    final previousLiked = _liked;
+    final previousDisliked = _disliked;
+    final previousLikeCount = _likeCount;
+    final previousDislikeCount = _dislikeCount;
+
     setState(() {
+      _isUpdating = true;
       if (_disliked) {
-        // Remove dislike
         _disliked = false;
         _dislikeCount--;
       } else {
-        // Dislike
         _disliked = true;
         _dislikeCount++;
-
-        // Remove like if active
         if (_liked) {
           _liked = false;
           _likeCount--;
@@ -1028,8 +1155,39 @@ class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
       }
     });
 
-    // TODO: Call API to save dislike
-    // Example: await CatalogService.instance.dislikeReview(widget.review.id);
+    try {
+      final result = await CatalogService.instance.toggleDislike(
+        widget.review.id,
+        _currentUserVote, // ✅ Use current vote state, not widget.review.userVote
+      );
+
+      if (!mounted) return;
+
+      // Update with actual values from backend
+      setState(() {
+        _likeCount = result['helpful_count'] as int;
+        _dislikeCount = result['not_helpful_count'] as int;
+        final userVote = result['user_vote'] as String?;
+        _currentUserVote = userVote; // ✅ Update current vote state
+        _liked = userVote == 'like';
+        _disliked = userVote == 'dislike';
+        _isUpdating = false;
+      });
+    } catch (e) {
+      // Rollback on error
+      if (!mounted) return;
+      setState(() {
+        _liked = previousLiked;
+        _disliked = previousDisliked;
+        _likeCount = previousLikeCount;
+        _dislikeCount = previousDislikeCount;
+        _isUpdating = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể cập nhật: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -1083,24 +1241,24 @@ class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
                     Text(
                       displayName,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withOpacity(
-                          0.7,
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.7,
                         ),
                       ),
                     ),
                     Text(
                       '•',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withOpacity(
-                          0.7,
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.7,
                         ),
                       ),
                     ),
                     Text(
                       _formatDate(widget.review.createdAt),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withOpacity(
-                          0.7,
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.7,
                         ),
                       ),
                     ),
@@ -1108,57 +1266,60 @@ class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
                 ),
               ),
 
-              // ✅ Like/Dislike buttons (NO REPORT BUTTON)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Like button
-                  TextButton.icon(
-                    onPressed: _toggleLike,
-                    icon: Icon(
-                      _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                      size: 16,
-                      color: _liked ? theme.colorScheme.primary : null,
-                    ),
-                    label: Text(
-                      '$_likeCount',
-                      style: TextStyle(
+              // ✅ Like/Dislike buttons (hidden for own reviews)
+              if (!_isOwnReview)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Like button
+                    TextButton.icon(
+                      onPressed: _isUpdating ? null : _toggleLike,
+                      icon: Icon(
+                        _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                        size: 16,
                         color: _liked ? theme.colorScheme.primary : null,
-                        fontWeight: _liked ? FontWeight.w600 : null,
+                      ),
+                      label: Text(
+                        '$_likeCount',
+                        style: TextStyle(
+                          color: _liked ? theme.colorScheme.primary : null,
+                          fontWeight: _liked ? FontWeight.w600 : null,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: const Size(0, 36),
                       ),
                     ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      minimumSize: const Size(0, 36),
-                    ),
-                  ),
 
-                  const SizedBox(width: 4),
+                    const SizedBox(width: 4),
 
-                  // Dislike button
-                  TextButton.icon(
-                    onPressed: _toggleDislike,
-                    icon: Icon(
-                      _disliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-                      size: 16,
-                      color: _disliked ? theme.colorScheme.error : null,
-                    ),
-                    label: Text(
-                      '$_dislikeCount',
-                      style: TextStyle(
+                    // Dislike button
+                    TextButton.icon(
+                      onPressed: _isUpdating ? null : _toggleDislike,
+                      icon: Icon(
+                        _disliked
+                            ? Icons.thumb_down
+                            : Icons.thumb_down_outlined,
+                        size: 16,
                         color: _disliked ? theme.colorScheme.error : null,
-                        fontWeight: _disliked ? FontWeight.w600 : null,
+                      ),
+                      label: Text(
+                        '$_dislikeCount',
+                        style: TextStyle(
+                          color: _disliked ? theme.colorScheme.error : null,
+                          fontWeight: _disliked ? FontWeight.w600 : null,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: const Size(0, 36),
                       ),
                     ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      minimumSize: const Size(0, 36),
-                    ),
-                  ),
 
-                  // ❌ REMOVED: Report button
-                ],
-              ),
+                    // ❌ REMOVED: Report button
+                  ],
+                ),
             ],
           ),
         ],

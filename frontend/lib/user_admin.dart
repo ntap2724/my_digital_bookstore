@@ -14,7 +14,7 @@ import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
 import 'package:my_flutter_app/services/user_service.dart';
 import 'package:my_flutter_app/services/wallet_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class UserAdminPage extends StatefulWidget {
   const UserAdminPage({super.key});
@@ -30,12 +30,14 @@ class _UserAdminPageState extends State<UserAdminPage>
       GlobalKey<_UserAdminViewState>();
   final GlobalKey<_BookAdminViewState> _bookKey =
       GlobalKey<_BookAdminViewState>();
+  final GlobalKey<_AuthorAdminViewState> _authorKey =
+      GlobalKey<_AuthorAdminViewState>();
   int _currentTab = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabChanged);
   }
 
@@ -54,12 +56,15 @@ class _UserAdminPageState extends State<UserAdminPage>
 
   bool get _isUserLoading => _userKey.currentState?.isLoading ?? false;
   bool get _isBookLoading => _bookKey.currentState?.isLoading ?? false;
+  bool get _isAuthorLoading => _authorKey.currentState?.isLoading ?? false;
 
   void _refreshCurrentTab() {
     if (_currentTab == 0) {
       _userKey.currentState?.refreshUsers();
-    } else {
+    } else if (_currentTab == 1) {
       _bookKey.currentState?.refreshBooks();
+    } else {
+      _authorKey.currentState?.refreshAuthors();
     }
   }
 
@@ -67,15 +72,26 @@ class _UserAdminPageState extends State<UserAdminPage>
     _bookKey.currentState?.createBook();
   }
 
+  void _createAuthor() {
+    _authorKey.currentState?.createAuthor();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
     final isBookTab = _currentTab == 1;
-    final isLoading = isBookTab ? _isBookLoading : _isUserLoading;
+    final isAuthorTab = _currentTab == 2;
+    final isLoading = _currentTab == 0
+        ? _isUserLoading
+        : _currentTab == 1
+            ? _isBookLoading
+            : _isAuthorLoading;
 
-    return Scaffold(
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/admin',
       appBar: AppBar(
         title: Text(t.adminPanel),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             tooltip: t.refresh,
@@ -94,15 +110,19 @@ class _UserAdminPageState extends State<UserAdminPage>
               icon: const Icon(Icons.menu_book_outlined),
               text: t.adminTabBooks,
             ),
+            Tab(
+              icon: const Icon(Icons.person_outlined),
+              text: t.adminTabAuthors,
+            ),
           ],
         ),
       ),
-      drawer: const AppNavigationMenu(currentRoute: '/admin'),
       body: TabBarView(
         controller: _tabController,
         children: [
           UserAdminView(key: _userKey),
           BookAdminView(key: _bookKey),
+          AuthorAdminView(key: _authorKey),
         ],
       ),
       floatingActionButton: isBookTab
@@ -111,7 +131,13 @@ class _UserAdminPageState extends State<UserAdminPage>
               tooltip: t.bookAdd,
               child: const Icon(Icons.add),
             )
-          : null,
+          : isAuthorTab
+              ? FloatingActionButton(
+                  onPressed: _createAuthor,
+                  tooltip: t.authorAdd,
+                  child: const Icon(Icons.add),
+                )
+              : null,
     );
   }
 }
@@ -1978,4 +2004,495 @@ String _formatDateTime(DateTime? value) {
   final dt = value.toLocal();
   String two(int v) => v.toString().padLeft(2, '0');
   return '${dt.year}-${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}';
+}
+
+// ==================== AUTHOR ADMIN ====================
+
+class AuthorAdminView extends StatefulWidget {
+  const AuthorAdminView({super.key});
+
+  @override
+  State<AuthorAdminView> createState() => _AuthorAdminViewState();
+}
+
+class _AuthorAdminViewState extends State<AuthorAdminView> {
+  final CatalogService _catalogService = CatalogService.instance;
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<Author> _allAuthors = [];
+  final List<Author> _authors = [];
+  final Set<int> _deleting = {};
+
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+    _loadAuthors();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool get isLoading => _loading;
+
+  Future<void> refreshAuthors() => _loadAuthors(forceBackend: true);
+
+  void createAuthor() => _openEditor();
+
+  void _onSearchChanged() {
+    if (_loading && _allAuthors.isEmpty) return;
+    _applyFilters();
+  }
+
+  Future<void> _loadAuthors({bool forceBackend = false}) async {
+    setState(() {
+      _loading = true;
+      if (forceBackend) {
+        _error = null;
+      }
+    });
+
+    try {
+      final authors = await _catalogService.fetchAuthors(
+        auth: true,
+        forceRefresh: forceBackend,
+      );
+      if (!mounted) return;
+      setState(() {
+        _allAuthors
+          ..clear()
+          ..addAll(authors);
+      });
+      _applyFilters();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+        _allAuthors.clear();
+        _authors.clear();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+        _allAuthors.clear();
+        _authors.clear();
+      });
+    }
+  }
+
+  void _applyFilters() {
+    final search = _searchController.text.trim().toLowerCase();
+
+    final filtered = _allAuthors
+        .where((author) {
+          if (search.isEmpty) return true;
+
+          bool contains(String? value) =>
+              value != null && value.toLowerCase().contains(search);
+
+          return contains(author.name) || contains(author.slug);
+        })
+        .toList(growable: false)
+      ..sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+
+    setState(() {
+      _authors
+        ..clear()
+        ..addAll(filtered);
+      _loading = false;
+    });
+  }
+
+  void _clearSearch() {
+    if (_searchController.text.isEmpty) return;
+    _searchController.clear();
+  }
+
+  Future<void> _openEditor([Author? author]) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _AuthorEditorDialog(author: author),
+    );
+    if (result == null) return;
+
+    try {
+      if (author == null) {
+        final created = await _catalogService.createAuthor(result);
+        if (!mounted) return;
+        setState(() {
+          _allAuthors.add(created);
+        });
+        _applyFilters();
+        _showSnack(context.l10n.authorCreateSuccess);
+      } else {
+        final updated = await _catalogService.updateAuthor(author.id, result);
+        if (!mounted) return;
+        setState(() {
+          final index = _allAuthors.indexWhere((a) => a.id == author.id);
+          if (index >= 0) {
+            _allAuthors[index] = updated;
+          }
+        });
+        _applyFilters();
+        _showSnack(context.l10n.authorUpdateSuccess);
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showSnack(e.message);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString());
+    }
+  }
+
+  Future<void> _deleteAuthor(Author author) async {
+    final t = context.l10n;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.authorDeleteTitle),
+        content: Text(t.authorDeleteMessage(author.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(t.authorDeleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _deleting.add(author.id));
+
+    try {
+      await _catalogService.deleteAuthor(author.id);
+      if (!mounted) return;
+      setState(() {
+        _allAuthors.removeWhere((a) => a.id == author.id);
+      });
+      _applyFilters();
+      _showSnack(t.authorDeleteSuccess);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showSnack(e.message);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _deleting.remove(author.id));
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    if (message.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  List<DataColumn> _buildColumns(AppLocalizations t) => [
+        DataColumn(label: Text(t.authorColumnIndex), numeric: true),
+        DataColumn(label: Text(t.authorColumnName)),
+        DataColumn(label: Text(t.authorColumnSlug)),
+        DataColumn(label: Text(t.authorColumnBooksCount), numeric: true),
+        DataColumn(label: Text(t.authorColumnActions)),
+      ];
+
+  List<DataRow> _buildRows(BuildContext context, AppLocalizations t) {
+    return List<DataRow>.generate(_authors.length, (index) {
+      final author = _authors[index];
+      final isDeleting = _deleting.contains(author.id);
+      return DataRow(
+        cells: [
+          DataCell(Text('${index + 1}')),
+          DataCell(
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: Text(
+                author.name,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+          DataCell(
+            Text(
+              author.slug,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Theme.of(context).hintColor),
+            ),
+          ),
+          DataCell(Text('${author.booksCount}')),
+          DataCell(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: t.authorEdit,
+                  onPressed: () => _openEditor(author),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                IconButton(
+                  tooltip:
+                      isDeleting ? t.authorDeleteInProgress : t.authorDelete,
+                  onPressed: isDeleting ? null : () => _deleteAuthor(author),
+                  icon: isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.l10n;
+
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return _ErrorView(
+        message: _error!,
+        onRetry: () => _loadAuthors(forceBackend: true),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            enabled: !_loading,
+            onSubmitted: (_) => _applyFilters(),
+            decoration: InputDecoration(
+              labelText: t.authorSearchLabel,
+              hintText: t.authorSearchHint,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: t.clear,
+                      onPressed: _clearSearch,
+                      icon: const Icon(Icons.clear),
+                    ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _loadAuthors(forceBackend: true),
+            child: _authors.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 48,
+                          horizontal: 16,
+                        ),
+                        child: Center(
+                          child: Text(t.authorListEmpty),
+                        ),
+                      ),
+                    ],
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: SizedBox(
+                            width: constraints.maxWidth,
+                            child: DataTable(
+                              headingRowColor: WidgetStateProperty.all(
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                              ),
+                              headingTextStyle:
+                                  Theme.of(context).textTheme.labelLarge,
+                              columnSpacing: 24,
+                              dataRowMinHeight: 68,
+                              dataRowMaxHeight: 120,
+                              columns: _buildColumns(t),
+                              rows: _buildRows(context, t),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthorEditorDialog extends StatefulWidget {
+  const _AuthorEditorDialog({this.author});
+
+  final Author? author;
+
+  @override
+  State<_AuthorEditorDialog> createState() => _AuthorEditorDialogState();
+}
+
+class _AuthorEditorDialogState extends State<_AuthorEditorDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _slugController;
+  late final TextEditingController _bioController;
+
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final author = widget.author;
+    _nameController = TextEditingController(text: author?.name ?? '');
+    _slugController = TextEditingController(text: author?.slug ?? '');
+    _bioController = TextEditingController(text: author?.bio ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _slugController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
+
+    setState(() => _submitting = true);
+
+    final t = context.l10n;
+
+    try {
+      final name = _nameController.text.trim();
+      final slug = _slugController.text.trim();
+      final bio = _bioController.text.trim();
+
+      final payload = <String, dynamic>{
+        'name': name,
+      };
+
+      if (slug.isNotEmpty) payload['slug'] = slug;
+      if (bio.isNotEmpty) payload['bio'] = bio;
+
+      Navigator.of(context).pop(payload);
+    } catch (e) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.bookFormUnexpectedError)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.l10n;
+
+    return AlertDialog(
+      title: Text(
+        widget.author == null
+            ? t.authorFormCreateTitle
+            : t.authorFormEditTitle(widget.author!.name),
+      ),
+      content: SizedBox(
+        width: 480,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: t.authorNameLabel,
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (value) {
+                  final text = value?.trim() ?? '';
+                  if (text.isEmpty) {
+                    return t.authorNameRequired;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _slugController,
+                decoration: InputDecoration(
+                  labelText: t.authorSlugLabel,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _bioController,
+                decoration: InputDecoration(
+                  labelText: t.authorBioLabel,
+                ),
+                maxLines: 4,
+                minLines: 3,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+          child: Text(t.cancel),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: Text(
+            widget.author == null
+                ? t.authorFormCreateAction
+                : t.authorFormUpdateAction,
+          ),
+        ),
+      ],
+    );
+  }
 }

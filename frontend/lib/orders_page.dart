@@ -6,7 +6,7 @@ import 'package:my_flutter_app/models/order_item.dart';
 import 'package:my_flutter_app/models/paginated_result.dart';
 import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/order_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
@@ -125,10 +125,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   Widget build(BuildContext context) {
     final t = context.l10n;
 
-    return Scaffold(
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/orders',
       appBar: AppBar(
         title: Text(t.orderHistory),
-
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             tooltip: t.refresh,
@@ -139,7 +140,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
           ),
         ],
       ),
-      drawer: const AppNavigationMenu(currentRoute: '/orders'),
+      // Removed drawer - now using ResponsiveNavigationWrapper
 
       body: _loading
           ? const Center(child: CircularProgressIndicator())

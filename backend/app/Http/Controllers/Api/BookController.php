@@ -234,6 +234,7 @@ class BookController extends Controller
                 'slug' => $author->slug,
                 'bio' => $author->bio,
             ])->values(),
+            'average_rating' => $average,
             'rating_summary' => $ratingSummary,
             'reviews' => $includeReviews ? $reviewsData : null,
             'owned' => $this->bookOwnedBy($book, $currentUser),

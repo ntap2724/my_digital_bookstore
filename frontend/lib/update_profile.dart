@@ -77,9 +77,9 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
         if (g != null && g.isNotEmpty) {
           _gender = switch (g) {
             'Nam' => 'male',
-            'Ná»¯' => 'female',
+            'Nữ' => 'female',
             'Nu' => 'female',
-            'KhÃ¡c' => 'other',
+            'Khác' => 'other',
             _ => 'other',
           };
         }
@@ -90,12 +90,12 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
             _gender = 'male';
           } else if (g2 == 'female' ||
               g2 == 'nu' ||
-              g2 == 'ná»¯' ||
-              g2 == 'nÆ°Ìƒ') {
+              g2 == 'nữ' ||
+              g2 == 'nữ') {
             _gender = 'female';
           } else if (g2 == 'other' ||
               g2.startsWith('khac') ||
-              g2.startsWith('khÃ¡c')) {
+              g2.startsWith('khác')) {
             _gender = 'other';
           }
         }

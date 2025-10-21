@@ -303,6 +303,10 @@ class AppLocalizations {
   String get bookNoReviews => _t('bookNoReviews');
   String get bookReviewAnonymous => _t('bookReviewAnonymous');
   String get bookReviewComposerTitle => _t('bookReviewComposerTitle');
+  String get bookReviewComposerUpdateTitle => _t('bookReviewComposerUpdateTitle');
+  String get bookReviewTitleLabel => _t('bookReviewTitleLabel');
+  String get bookReviewTitleHint => _t('bookReviewTitleHint');
+  String get bookReviewContentRequired => _t('bookReviewContentRequired');
   String get bookReviewRatingLabel => _t('bookReviewRatingLabel');
   String get bookReviewRatingRequired => _t('bookReviewRatingRequired');
   String get bookReviewCommentLabel => _t('bookReviewCommentLabel');
@@ -420,6 +424,38 @@ class AppLocalizations {
   String get adminPanel => _t('adminPanel');
   String get adminTabUsers => _t('adminTabUsers');
   String get adminTabBooks => _t('adminTabBooks');
+  String get adminTabAuthors => _t('adminTabAuthors');
+
+  // ---- Authors ----
+  String get authorSearchLabel => _t('authorSearchLabel');
+  String get authorSearchHint => _t('authorSearchHint');
+  String get authorColumnIndex => _t('authorColumnIndex');
+  String get authorColumnName => _t('authorColumnName');
+  String get authorColumnSlug => _t('authorColumnSlug');
+  String get authorColumnBooksCount => _t('authorColumnBooksCount');
+  String get authorColumnActions => _t('authorColumnActions');
+  String get authorAdd => _t('authorAdd');
+  String get authorEdit => _t('authorEdit');
+  String get authorDelete => _t('authorDelete');
+  String get authorDeleteTitle => _t('authorDeleteTitle');
+  String authorDeleteMessage(String name) =>
+      _fmt('authorDeleteMessage', {'name': name});
+  String get authorDeleteAction => _t('authorDeleteAction');
+  String get authorDeleteSuccess => _t('authorDeleteSuccess');
+  String get authorDeleteInProgress => _t('authorDeleteInProgress');
+  String get authorListEmpty => _t('authorListEmpty');
+  String get authorCreateSuccess => _t('authorCreateSuccess');
+  String get authorUpdateSuccess => _t('authorUpdateSuccess');
+  String get authorFormCreateTitle => _t('authorFormCreateTitle');
+  String authorFormEditTitle(String name) =>
+      _fmt('authorFormEditTitle', {'name': name});
+  String get authorNameLabel => _t('authorNameLabel');
+  String get authorNameRequired => _t('authorNameRequired');
+  String get authorSlugLabel => _t('authorSlugLabel');
+  String get authorBioLabel => _t('authorBioLabel');
+  String get authorFormCreateAction => _t('authorFormCreateAction');
+  String get authorFormUpdateAction => _t('authorFormUpdateAction');
+
   String get confirm => _t('confirm');
   String get close => _t('close');
   String get details => _t('details');

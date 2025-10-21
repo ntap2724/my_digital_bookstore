@@ -18,6 +18,7 @@ class Book {
   final String status;
   final Category? category;
   final List<Author> authors;
+  final double averageRating;
 
   const Book({
     required this.id,
@@ -36,6 +37,7 @@ class Book {
     required this.status,
     this.category,
     this.authors = const [],
+    this.averageRating = 0.0,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -87,6 +89,7 @@ class Book {
                 .toList(growable: false)
           : const [],
       owned: parseOwned(json['owned']),
+      averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -107,6 +110,7 @@ class Book {
     String? status,
     Category? category,
     List<Author>? authors,
+    double? averageRating,
   }) {
     return Book(
       id: id ?? this.id,
@@ -125,6 +129,7 @@ class Book {
       status: status ?? this.status,
       category: category ?? this.category,
       authors: authors ?? this.authors,
+      averageRating: averageRating ?? this.averageRating,
     );
   }
 }

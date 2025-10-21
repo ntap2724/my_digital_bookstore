@@ -7,7 +7,7 @@ import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
 import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,7 +17,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const double _bookCardInfoHeight = 160;
+  static const double _bookCardInfoHeight = 172;
   static const double _bookCoverAspectRatio = 3 / 4;
 
   final CatalogService _catalogService = CatalogService.instance;
@@ -226,9 +226,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
-    return Scaffold(
-      appBar: AppBar(title: Text(t.home)),
-      drawer: const AppNavigationMenu(currentRoute: '/home'),
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/home',
+      appBar: AppBar(
+        title: Text(t.home),
+        automaticallyImplyLeading: false,
+      ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
         child: ListView(
@@ -395,18 +398,25 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                     const SizedBox(height: 8), // ✅ Spacing đều 8px
-                    // 2. CATEGORY/DESCRIPTION (fixed height)
+                    // 2. AVERAGE RATING (fixed height)
                     SizedBox(
                       height: 16, // ✅ Fixed height để spacing consistent
-                      child:
-                          trimmedCategory != null && trimmedCategory.isNotEmpty
-                          ? Text(
-                              trimmedCategory,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall,
-                            )
-                          : const SizedBox.shrink(),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            book.averageRating > 0
+                                ? book.averageRating.toStringAsFixed(1)
+                                : '0.0',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 8), // ✅ Spacing đều 8px

@@ -6,7 +6,7 @@ import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
 import 'package:my_flutter_app/services/library_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
-import 'package:my_flutter_app/widgets/app_navigation_menu.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -101,52 +101,61 @@ class _CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
-    return Scaffold(
-      appBar: AppBar(title: Text(t.cart)),
-      drawer: const AppNavigationMenu(currentRoute: '/cart'),
-      body: AnimatedBuilder(
-        animation: _cartService,
-        builder: (context, _) {
-          if (!_cartService.isLoaded) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (_cartService.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  t.cartEmpty,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            );
-          }
-
-          final items = _cartService.items;
-
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 144),
-            itemCount: items.length,
-            separatorBuilder: (_, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              final loading = _updatingItems.contains(item.bookId);
-              return _CartItemTile(
-                item: item,
-                t: t,
-                loading: loading,
-                onRemove: () => _removeItem(item),
-              );
-            },
-          );
-        },
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/cart',
+      appBar: AppBar(
+        title: Text(t.cart),
+        automaticallyImplyLeading: false,
       ),
-      bottomNavigationBar: _buildBottomBar(context),
+      body: Column(
+        children: [
+          Expanded(
+            child: AnimatedBuilder(
+              animation: _cartService,
+              builder: (context, _) {
+                if (!_cartService.isLoaded) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (_cartService.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        t.cartEmpty,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  );
+                }
+
+                final items = _cartService.items;
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: items.length,
+                  separatorBuilder: (_, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final loading = _updatingItems.contains(item.bookId);
+                    return _CartItemTile(
+                      item: item,
+                      t: t,
+                      loading: loading,
+                      onRemove: () => _removeItem(item),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          _buildCheckoutSummary(context),
+        ],
+      ),
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildCheckoutSummary(BuildContext context) {
     final theme = Theme.of(context);
     final t = context.l10n;
     return AnimatedBuilder(
@@ -170,40 +179,37 @@ class _CartPageState extends State<CartPage> {
               ),
             ],
           ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        t.orderTotal(total.toString()),
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      Text(
-                        '${t.quantity}: $quantity',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: _checkingOut ? null : () => _checkout(context),
-                    child: _checkingOut
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(t.cartCheckout),
-                  ),
-                ],
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      t.orderTotal(total.toString()),
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    Text(
+                      '${t.quantity}: $quantity',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _checkingOut ? null : () => _checkout(context),
+                  child: _checkingOut
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(t.cartCheckout),
+                ),
+              ],
             ),
           ),
         );

@@ -27,18 +27,15 @@ return new class extends Migration
 
             // Unique constraint: One vote per user per review
             $table->unique(['review_id', 'user_id'], 'unique_review_user_vote');
-            
+
             // Indexes for performance
             $table->index('review_id');
             $table->index('user_id');
             $table->index(['review_id', 'vote_type']);
         });
 
-        // 2. Add cached counts to book_reviews table
-        Schema::table('book_reviews', function (Blueprint $table) {
-            $table->integer('helpful_count')->default(0)->after('comment');
-            $table->integer('not_helpful_count')->default(0)->after('helpful_count');
-        });
+        // Note: helpful_count and not_helpful_count columns are already added
+        // in the create_book_reviews_table migration
     }
 
     /**
@@ -47,9 +44,5 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('review_votes');
-        
-        Schema::table('book_reviews', function (Blueprint $table) {
-            $table->dropColumn(['helpful_count', 'not_helpful_count']);
-        });
     }
 };
