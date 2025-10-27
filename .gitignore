@@ -3,3 +3,4 @@ CLAUDE.md
 # Flutter build output
 frontend/build/
 frontend/.dart_tool/
+*.hprof
