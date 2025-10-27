@@ -121,6 +121,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/books', [BookController::class, 'store']);
     Route::put('/books/{book}', [BookController::class, 'update']);
     Route::delete('/books/{book}', [BookController::class, 'destroy']);
+    
+    // PDF upload (Admin only)
+    Route::post('/books/{book}/pdf', [BookController::class, 'uploadPdf']);
+    
+    // PDF delete (Admin only)
+    Route::delete('/books/{book}/pdf', [BookController::class, 'deletePdf']);
+    
+    // PDF download (User must own the book)
+    Route::post('/books/{book}/ask', [BookController::class, 'askQuestion']);
+    Route::get('/books/{book}/pdf', [BookController::class, 'downloadPdf']);
 
     Route::post('/books/{book}/reviews', [BookReviewController::class, 'store']);
     Route::delete('/books/{book}/reviews/{review}', [BookReviewController::class, 'destroy']);

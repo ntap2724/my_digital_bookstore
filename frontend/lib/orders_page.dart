@@ -129,7 +129,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
       currentRoute: '/orders',
       appBar: AppBar(
         title: Text(t.orderHistory),
-        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             tooltip: t.refresh,

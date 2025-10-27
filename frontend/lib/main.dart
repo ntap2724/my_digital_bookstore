@@ -10,8 +10,10 @@ import 'package:my_flutter_app/forgot_password.dart';
 import 'package:my_flutter_app/home.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/login.dart';
+import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/my_books_page.dart';
 import 'package:my_flutter_app/orders_page.dart';
+import 'package:my_flutter_app/pdf_viewer_page.dart';
 import 'package:my_flutter_app/privacy.dart';
 import 'package:my_flutter_app/register.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
@@ -26,6 +28,12 @@ import 'package:my_flutter_app/wallet_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Fix for lifecycle channel messages being discarded
+  // This configures the channel to handle messages sent before listeners are registered
+  SystemChannels.lifecycle.setMessageHandler((message) async {
+    return message;
+  });
 
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
@@ -145,6 +153,11 @@ class MyApp extends StatelessWidget {
             '/change-password': (_) => const ChangePasswordPage(),
 
             '/accounts': (_) => const AccountListPage(),
+            
+            PdfViewerPage.routeName: (context) {
+              final book = ModalRoute.of(context)!.settings.arguments as Book;
+              return PdfViewerPage(book: book);
+            },
           },
         );
       },

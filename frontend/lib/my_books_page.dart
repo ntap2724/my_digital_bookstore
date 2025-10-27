@@ -1,13 +1,17 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-
 import 'package:intl/intl.dart';
 import 'package:my_flutter_app/book_detail.dart';
+import 'package:my_flutter_app/config.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/paginated_result.dart';
 import 'package:my_flutter_app/models/user_book.dart';
+import 'package:my_flutter_app/pdf_viewer_page.dart';
 import 'package:my_flutter_app/services/api_client.dart';
+import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/library_service.dart';
 import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
+import 'package:universal_html/html.dart' as html;
 
 class MyBooksPage extends StatefulWidget {
   const MyBooksPage({super.key});
@@ -107,10 +111,34 @@ class _MyBooksPageState extends State<MyBooksPage> {
     await _loadLibrary();
   }
 
-  void _openBook(UserBook entry) {
+  void _openBookDetails(UserBook entry) {
     final navigator = Navigator.of(context);
     final initial = entry.book;
 
+    navigator.pushNamed(
+      BookDetailPage.routeName,
+      arguments: BookDetailArgs(bookId: entry.bookId, initial: initial),
+    );
+  }
+
+  Future<void> _readBook(UserBook entry) async {
+    final book = entry.book;
+
+    if (book == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Book not found')),
+      );
+      return;
+    }
+
+    if (!book.hasPdf) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.pdfNotAvailable)),
+      );
+      return;
+    }
+
+    // Mark as opened
     _libraryService
         .markOpened(entry.bookId)
         .then((updated) {
@@ -128,9 +156,77 @@ class _MyBooksPageState extends State<MyBooksPage> {
           // ignore errors for mark opened; the user can still read the book.
         });
 
-    navigator.pushNamed(
-      BookDetailPage.routeName,
-      arguments: BookDetailArgs(bookId: entry.bookId, initial: initial),
+    // Web: Download PDF and open in new tab
+    if (kIsWeb) {
+      if (!mounted) return;
+      
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              Text(context.l10n.downloadingPdf),
+            ],
+          ),
+          duration: const Duration(seconds: 30),
+        ),
+      );
+
+      try {
+        final token = await AuthService.instance.getToken();
+        if (token == null || token.isEmpty) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Authentication required')),
+          );
+          return;
+        }
+
+        // Fetch PDF with authorization
+        final response = await html.HttpRequest.request(
+          '${AppConfig.apiBaseUrl}/api/books/${book.id}/pdf',
+          method: 'GET',
+          requestHeaders: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/pdf',
+          },
+          responseType: 'blob',
+        );
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
+
+        // Create blob URL and open in new tab
+        final blob = response.response as html.Blob;
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        html.window.open(url, '_blank');
+        
+        // Clean up blob URL after a delay
+        Future.delayed(const Duration(seconds: 1), () {
+          html.Url.revokeObjectUrl(url);
+        });
+        
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open PDF: $e')),
+        );
+      }
+      return;
+    }
+
+    // Mobile/Desktop: Use in-app PDF viewer
+    Navigator.of(context).pushNamed(
+      PdfViewerPage.routeName,
+      arguments: book,
     );
   }
 
@@ -142,7 +238,6 @@ class _MyBooksPageState extends State<MyBooksPage> {
       currentRoute: '/my-books',
       appBar: AppBar(
         title: Text(t.myBooks),
-        automaticallyImplyLeading: false,
       ),
       // Removed drawer - now using ResponsiveNavigationWrapper
       body: _loading
@@ -168,7 +263,8 @@ class _MyBooksPageState extends State<MyBooksPage> {
                     for (final entry in _books) ...[
                       _LibraryBookCard(
                         entry: entry,
-                        onOpen: () => _openBook(entry),
+                        onOpenDetails: () => _openBookDetails(entry),
+                        onReadBook: () => _readBook(entry),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -197,10 +293,15 @@ class _MyBooksPageState extends State<MyBooksPage> {
 }
 
 class _LibraryBookCard extends StatelessWidget {
-  const _LibraryBookCard({required this.entry, required this.onOpen});
+  const _LibraryBookCard({
+    required this.entry,
+    required this.onOpenDetails,
+    required this.onReadBook,
+  });
 
   final UserBook entry;
-  final VoidCallback onOpen;
+  final VoidCallback onOpenDetails;
+  final VoidCallback onReadBook;
 
   @override
   Widget build(BuildContext context) {
@@ -260,13 +361,21 @@ class _LibraryBookCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: onOpen,
-                icon: const Icon(Icons.menu_book_outlined),
-                label: Text(t.openBook),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: onOpenDetails,
+                  icon: const Icon(Icons.info_outline),
+                  label: Text(t.seeDetails),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: book != null && book.hasPdf ? onReadBook : null,
+                  icon: const Icon(Icons.menu_book),
+                  label: Text(t.readBook),
+                ),
+              ],
             ),
           ],
         ),

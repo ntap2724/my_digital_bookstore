@@ -171,6 +171,7 @@ class _AppNavigationMenuState extends State<AppNavigationMenu> {
         : (email.isNotEmpty ? email[0].toUpperCase() : '?');
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

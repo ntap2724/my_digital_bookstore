@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
+import 'package:my_flutter_app/services/navigation_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -18,18 +19,29 @@ class _SplashPageState extends State<SplashPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _goNext());
   }
 
+  @override
+  void dispose() {
+    debugPrint('Splash disposed');
+    super.dispose();
+  }
+
   Future<void> _goNext() async {
     await Future.delayed(const Duration(milliseconds: 1200));
     try {
-      final token = await AuthService.instance.getToken();
+      debugPrint('Splash: checking token...');
+      final token = await AuthService.instance
+          .getToken()
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+      debugPrint('Splash: token = $token');
       if (token != null && token.isNotEmpty) {
-        if (!mounted) return;
-        Navigator.of(context).pushReplacementNamed('/home');
+        debugPrint('Splash: routing to /home');
+        NavigationService.navigatorKey.currentState
+            ?.pushReplacementNamed('/home');
         return;
       }
     } catch (_) {}
-    if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/login');
+    debugPrint('Splash: routing to /login');
+    NavigationService.navigatorKey.currentState?.pushReplacementNamed('/login');
   }
 
   @override
@@ -62,8 +74,8 @@ class _SplashPageState extends State<SplashPage> {
               Text(
                 context.l10n.welcome,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const SizedBox(height: 6),
               Text(

@@ -4,6 +4,7 @@ import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/cart_item.dart';
 import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
+import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/library_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
 import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
@@ -18,6 +19,7 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   final CartService _cartService = CartService.instance;
   final OrderService _orderService = OrderService.instance;
+  final CatalogService _catalogService = CatalogService.instance;
 
   final Set<int> _updatingItems = <int>{};
 
@@ -65,11 +67,30 @@ class _CartPageState extends State<CartPage> {
     });
 
     try {
-      final payload = _cartService.items
-          .map((item) => {'book_id': item.bookId, 'quantity': 1})
+      final itemsSnapshot = _cartService.items.toList(growable: false);
+      final payload = itemsSnapshot
+          .map((item) => {
+                'book_id': item.bookId,
+                'quantity': item.quantity,
+              })
           .toList(growable: false);
 
       await _orderService.placeOrder(items: payload);
+
+      for (final item in itemsSnapshot) {
+        final book = item.book;
+        int? updatedCopies;
+        if (book != null) {
+          var remaining = book.availableCopies - item.quantity;
+          if (remaining < 0) remaining = 0;
+          updatedCopies = remaining;
+        }
+        _catalogService.markBookOwned(
+          item.bookId,
+          availableCopies: updatedCopies,
+        );
+      }
+
       await _cartService.clear();
       LibraryService.instance.invalidateCache();
 
@@ -105,7 +126,6 @@ class _CartPageState extends State<CartPage> {
       currentRoute: '/cart',
       appBar: AppBar(
         title: Text(t.cart),
-        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [

@@ -108,9 +108,10 @@ class OrderController extends Controller
             ];
         }
 
-        if ($total <= 0) {
+        // Allow zero-cost orders for free books, but guard against unexpected negatives.
+        if ($total < 0) {
             return response()->json([
-                'message' => 'Order total must be greater than zero.',
+                'message' => 'Order total cannot be negative.',
             ], 422);
         }
 

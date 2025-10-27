@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
@@ -9,7 +10,7 @@ import 'package:my_flutter_app/widgets/form_section.dart';
 import 'package:my_flutter_app/widgets/form_utils.dart';
 import 'package:my_flutter_app/widgets/link_button.dart';
 import 'package:my_flutter_app/widgets/password_strength_meter.dart';
-import 'package:my_flutter_app/widgets/primary_button.dart';
+import 'package:my_flutter_app/widgets/responsive_auth_layout.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
@@ -184,15 +185,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 16 : 20,
-                vertical: isSmallScreen ? 16 : 20,
-              ),
-              child: Column(
+        child: ResponsiveAuthLayout(
+          child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(height: isSmallScreen ? 8 : 8),
@@ -201,7 +195,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     icon: Icons.auto_stories_rounded,
                     title: t.registerTitle,
                     subtitle: t.registerSubtitle,
-                    iconSize: isSmallScreen ? 40 : 48,
+                    iconSize: isSmallScreen ? 36 : 40,
+                    compact: true,
                   ),
                   // Form
                   Form(
@@ -211,7 +206,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       children: [
                         // Personal Information Section
                         FormSection(
-                          title: 'Personal Information',
+                          title: t.personalInformation,
                           icon: Icons.person_outline,
                           spacing: isSmallScreen ? 14 : 12,
                           children: [
@@ -288,7 +283,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         SizedBox(height: isSmallScreen ? 20 : 24),
                         // Account Security Section
                         FormSection(
-                          title: 'Account Security',
+                          title: t.accountSecurity,
                           icon: Icons.security_outlined,
                           spacing: isSmallScreen ? 14 : 12,
                           children: [
@@ -331,6 +326,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               PasswordStrengthMeter(
                                 password: _passwordCtrl.text,
                                 showLabel: true,
+                                localizations: t,
                               ),
                             // Password checklist/ok message
                             Builder(
@@ -548,45 +544,36 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                             contentPadding: EdgeInsets.zero,
                             controlAffinity: ListTileControlAffinity.leading,
-                            title: Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  t.agreePrefix,
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                            title: RichText(
+                              text: TextSpan(
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
                                 ),
-                                LinkButton(
-                                  t.tosShort,
-                                  inline: true,
-                                  padding: EdgeInsets.zero,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                  onPressed: () =>
-                                      Navigator.of(context).pushNamed('/terms'),
-                                ),
-                                Text(
-                                  t.and,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                LinkButton(
-                                  t.privacyShort,
-                                  inline: true,
-                                  padding: EdgeInsets.zero,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                  onPressed: () => Navigator.of(
-                                    context,
-                                  ).pushNamed('/privacy'),
-                                ),
-                              ],
+                                children: [
+                                  TextSpan(text: t.agreeToTermsPrefix),
+                                  TextSpan(
+                                    text: t.termsOfService,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      decoration: TextDecoration.underline,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () => Navigator.of(context).pushNamed('/terms'),
+                                  ),
+                                  TextSpan(text: t.andText),
+                                  TextSpan(
+                                    text: t.privacyPolicy,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      decoration: TextDecoration.underline,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () => Navigator.of(context).pushNamed('/privacy'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -607,23 +594,35 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           ),
                         SizedBox(height: isSmallScreen ? 18 : 20),
                         // Register button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: PrimaryButton.icon(
-                            onPressed: _isReadyToSubmit && !_submitting
-                                ? _submit
-                                : null,
-                            icon: _submitting
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.person_add),
-                            label: Text(_submitting ? t.loggingIn : t.register),
+                        FilledButton.icon(
+                          onPressed: _isReadyToSubmit && !_submitting
+                              ? _submit
+                              : null,
+                          icon: _submitting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.person_add),
+                          label: Text(
+                            _submitting ? t.loggingIn : t.register,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 52),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                         SizedBox(height: isSmallScreen ? 18 : 20),
@@ -647,8 +646,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   const SizedBox(height: 12),
                 ],
               ),
-            ),
-          ),
         ),
       ),
     );

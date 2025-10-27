@@ -60,6 +60,21 @@ return [
             'report' => false,
         ],
 
+        'books' => [
+            'driver' => 'local',
+            'root' => storage_path('app/books'),
+            'visibility' => 'private',
+            'throw' => false,
+        ],
+
+        'covers' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/covers'),
+            'url' => env('APP_URL').'/storage/covers',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
     ],
 
     /*

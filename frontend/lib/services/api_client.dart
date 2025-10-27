@@ -1,4 +1,5 @@
-﻿import 'dart:convert';
+﻿import 'dart:async';
+import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:my_flutter_app/config.dart';
@@ -92,6 +93,7 @@ class ApiClient {
     Map<String, dynamic>? query,
     Object? body,
     bool auth = true,
+    int attempt = 0,
   }) async {
     final uri = _buildUri(path, query);
     final headers = <String, String>{'Accept': 'application/json'};
@@ -142,7 +144,27 @@ class ApiClient {
       if (response.body.isEmpty) {
         return null;
       }
-      return _decodeJson(response.body);
+      try {
+        return _decodeJson(response.body);
+      } on FormatException catch (e) {
+        final canRetry = method == 'GET' && attempt == 0;
+        if (canRetry) {
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+          return _request(
+            method,
+            path,
+            query: query,
+            body: body,
+            auth: auth,
+            attempt: attempt + 1,
+          );
+        }
+        throw ApiException(
+          'Failed to parse server response.',
+          statusCode: response.statusCode,
+          body: {'message': e.message},
+        );
+      }
     }
 
     Map<String, dynamic>? bodyJson;

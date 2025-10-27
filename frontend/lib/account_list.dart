@@ -116,7 +116,6 @@ class _AccountListPageState extends State<AccountListPage> {
       currentRoute: '/accounts',
       appBar: AppBar(
         title: Text(t.manageAccounts),
-        automaticallyImplyLeading: false,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

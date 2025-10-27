@@ -1,4 +1,5 @@
-﻿import 'package:my_flutter_app/models/author.dart';
+﻿import 'package:my_flutter_app/config.dart';
+import 'package:my_flutter_app/models/author.dart';
 import 'package:my_flutter_app/models/category.dart';
 
 class Book {
@@ -13,7 +14,9 @@ class Book {
   final String? isbn;
   final String? language;
   final String? coverImageUrl;
-  final String? fileUrl;
+  final String? pdfFilename;
+  final int? pdfFileSize;
+  final int? pdfPageCount;
   final DateTime? publishedAt;
   final String status;
   final Category? category;
@@ -32,7 +35,9 @@ class Book {
     this.isbn,
     this.language,
     this.coverImageUrl,
-    this.fileUrl,
+    this.pdfFilename,
+    this.pdfFileSize,
+    this.pdfPageCount,
     this.publishedAt,
     required this.status,
     this.category,
@@ -76,7 +81,9 @@ class Book {
       isbn: json['isbn']?.toString(),
       language: json['language']?.toString(),
       coverImageUrl: json['cover_image_url']?.toString(),
-      fileUrl: json['file_url']?.toString(),
+      pdfFilename: json['pdf_filename']?.toString(),
+      pdfFileSize: (json['pdf_file_size'] as num?)?.toInt(),
+      pdfPageCount: (json['pdf_page_count'] as num?)?.toInt(),
       publishedAt: publishedAt,
       status: json['status']?.toString() ?? 'draft',
       category: categoryJson is Map<String, dynamic>
@@ -105,7 +112,9 @@ class Book {
     String? isbn,
     String? language,
     String? coverImageUrl,
-    String? fileUrl,
+    String? pdfFilename,
+    int? pdfFileSize,
+    int? pdfPageCount,
     DateTime? publishedAt,
     String? status,
     Category? category,
@@ -124,12 +133,89 @@ class Book {
       isbn: isbn ?? this.isbn,
       language: language ?? this.language,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
-      fileUrl: fileUrl ?? this.fileUrl,
+      pdfFilename: pdfFilename ?? this.pdfFilename,
+      pdfFileSize: pdfFileSize ?? this.pdfFileSize,
+      pdfPageCount: pdfPageCount ?? this.pdfPageCount,
       publishedAt: publishedAt ?? this.publishedAt,
       status: status ?? this.status,
       category: category ?? this.category,
       authors: authors ?? this.authors,
       averageRating: averageRating ?? this.averageRating,
     );
+  }
+
+  /// Check if book has a PDF file
+  bool get hasPdf => pdfFilename != null && pdfFilename!.isNotEmpty;
+
+  /// Get formatted file size
+  String get formattedFileSize {
+    if (pdfFileSize == null) return 'Unknown';
+    final mb = pdfFileSize! / (1024 * 1024);
+    return '${mb.toStringAsFixed(2)} MB';
+  }
+
+  String? get resolvedCoverImageUrl {
+    final raw = coverImageUrl?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    final baseUri = Uri.tryParse(AppConfig.apiBaseUrl);
+    final schemePattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://');
+
+    if (!schemePattern.hasMatch(raw)) {
+      if (raw.startsWith('//')) {
+        final scheme = baseUri?.scheme.isNotEmpty == true ? baseUri!.scheme : 'https';
+        return '$scheme:$raw';
+      }
+
+      final hostMatch = RegExp(r'^([a-zA-Z0-9.-]+(?::\d+)?)(/.*)?$').firstMatch(raw);
+      if (hostMatch != null) {
+        final candidateHost = hostMatch.group(1)!;
+        final hasDot = candidateHost.contains('.');
+        final hasColon = candidateHost.contains(':');
+        if (hasDot || hasColon) {
+          final hostOnly = candidateHost.split(':').first;
+          final isIpv4 = RegExp(r'^\d{1,3}(?:\.\d{1,3}){3}$').hasMatch(hostOnly);
+          final scheme = isIpv4
+              ? (baseUri?.scheme.isNotEmpty == true ? baseUri!.scheme : 'http')
+              : 'https';
+          return '$scheme://$raw';
+        }
+      }
+    }
+
+    final parsed = Uri.tryParse(raw);
+
+    if (parsed == null) return raw;
+
+    if (parsed.hasScheme) {
+      final host = parsed.host.toLowerCase();
+      if (baseUri != null &&
+          baseUri.host.isNotEmpty &&
+          (host == 'localhost' || host == '127.0.0.1')) {
+        final scheme = baseUri.scheme.isNotEmpty ? baseUri.scheme : parsed.scheme;
+        final port = parsed.hasPort
+            ? parsed.port
+            : (baseUri.hasPort ? baseUri.port : null);
+        return parsed
+            .replace(
+              scheme: scheme,
+              host: baseUri.host,
+              port: port,
+            )
+            .toString();
+      }
+      return parsed.toString();
+    }
+
+    if (parsed.host.isNotEmpty) {
+      final scheme = baseUri?.scheme ?? 'http';
+      return parsed.replace(scheme: scheme).toString();
+    }
+
+    if (baseUri != null) {
+      return baseUri.resolveUri(parsed).toString();
+    }
+
+    return raw;
   }
 }

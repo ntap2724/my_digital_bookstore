@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_flutter_app/l10n/app_localizations.dart';
 
 /// A visual password strength indicator with animated progress and color coding
 class PasswordStrengthMeter extends StatefulWidget {
@@ -6,10 +7,12 @@ class PasswordStrengthMeter extends StatefulWidget {
     super.key,
     required this.password,
     this.showLabel = true,
+    required this.localizations,
   });
 
   final String password;
   final bool showLabel;
+  final AppLocalizations localizations;
 
   @override
   State<PasswordStrengthMeter> createState() => _PasswordStrengthMeterState();
@@ -73,6 +76,7 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
   Widget build(BuildContext context) {
     final strength = _calculateStrength(widget.password);
     final theme = Theme.of(context);
+    final t = widget.localizations;
 
     Color color;
     String label;
@@ -86,17 +90,17 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
         break;
       case PasswordStrength.weak:
         color = theme.colorScheme.error;
-        label = 'Weak';
+        label = t.passwordWeak;
         progress = 0.33;
         break;
       case PasswordStrength.medium:
         color = Colors.orange;
-        label = 'Medium';
+        label = t.passwordMedium;
         progress = 0.66;
         break;
       case PasswordStrength.strong:
         color = Colors.green;
-        label = 'Strong';
+        label = t.passwordStrong;
         progress = 1.0;
         break;
     }

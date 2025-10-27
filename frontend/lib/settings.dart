@@ -68,7 +68,6 @@ class _SettingsPageState extends State<SettingsPage> {
       currentRoute: '/settings',
       appBar: AppBar(
         title: Text(t.settings),
-        automaticallyImplyLeading: false,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},

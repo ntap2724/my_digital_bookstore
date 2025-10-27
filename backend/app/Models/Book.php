@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Book extends Model
@@ -24,7 +25,9 @@ class Book extends Model
         'isbn',
         'language',
         'cover_image_url',
-        'file_url',
+        'pdf_filename',
+        'pdf_file_size',
+        'pdf_page_count',
         'published_at',
         'status',
         'tags',
@@ -33,6 +36,8 @@ class Book extends Model
     protected $casts = [
         'published_at' => 'datetime',
         'tags' => 'array',
+        'pdf_file_size' => 'integer',
+        'pdf_page_count' => 'integer',
     ];
 
     protected static function booted(): void
@@ -82,6 +87,36 @@ class Book extends Model
     public function userBooks(): HasMany
     {
         return $this->hasMany(UserBook::class);
+    }
+
+    /**
+     * Check if book has a PDF file
+     */
+    public function hasPdf(): bool
+    {
+        return !empty($this->pdf_filename) && 
+               Storage::disk('books')->exists($this->pdf_filename);
+    }
+
+    /**
+     * Get the full path to the PDF file
+     */
+    public function getPdfPath(): ?string
+    {
+        return $this->hasPdf() 
+            ? Storage::disk('books')->path($this->pdf_filename)
+            : null;
+    }
+
+    /**
+     * Delete the PDF file from storage
+     */
+    public function deletePdf(): bool
+    {
+        if ($this->pdf_filename && Storage::disk('books')->exists($this->pdf_filename)) {
+            return Storage::disk('books')->delete($this->pdf_filename);
+        }
+        return false;
     }
 
 }

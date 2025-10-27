@@ -1,4 +1,4 @@
-﻿@if "%DEBUG%" == "" @echo off
+@if "%DEBUG%" == "" @echo off
 @rem ##########################################################################
 @rem
 @rem  Gradle startup script for Windows
@@ -88,3 +88,4 @@ exit /b 1
 if "%OS%"=="Windows_NT" endlocal
 
 :omega
+

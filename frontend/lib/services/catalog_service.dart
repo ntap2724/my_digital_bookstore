@@ -17,23 +17,88 @@ class CatalogService {
 
   final Map<String, List<Category>> _categoryCache = {};
   final Map<String, Future<List<Category>>> _categoryPending = {};
+  final Map<String, DateTime?> _categoryCacheTimestamp = {};
+
   final Map<String, List<Author>> _authorCache = {};
   final Map<String, Future<List<Author>>> _authorPending = {};
+  final Map<String, DateTime?> _authorCacheTimestamp = {};
+
   final Map<String, PaginatedResult<Book>> _bookCache = {};
   final Map<String, Future<PaginatedResult<Book>>> _bookPending = {};
+  final Map<String, DateTime?> _bookCacheTimestamp = {};
+
   List<Book>? _allBooksCache;
   Future<List<Book>>? _allBooksPending;
   String? _allBooksCacheKey;
+  DateTime? _allBooksCacheTimestamp;
   String? _currentOwnerKey;
 
   final Map<int, Map<String, dynamic>> _reviewsCache = {};
   final Map<int, Future<Map<String, dynamic>>> _reviewsPending = {};
+  final Map<int, DateTime?> _reviewsCacheTimestamp = {};
+
   final Map<int, BookReview?> _userReviewCache = {};
   final Map<int, Future<BookReview?>> _userReviewPending = {};
+  final Map<int, DateTime?> _userReviewCacheTimestamp = {};
 
   final ValueNotifier<int?> _ownedBookNotifier = ValueNotifier<int?>(null);
 
   ValueListenable<int?> get ownedBookUpdates => _ownedBookNotifier;
+
+  // Cache refresh interval (1 minute)
+  static const Duration _cacheRefreshInterval = Duration(minutes: 1);
+
+  // ==================== SMART CACHING METHODS ====================
+
+  /// Check if cache entry is stale (older than refresh interval)
+  bool _isCacheStale(DateTime? timestamp) {
+    if (timestamp == null) return true;
+    return DateTime.now().difference(timestamp) > _cacheRefreshInterval;
+  }
+
+  /// Update cache timestamp for a key
+  void _updateCacheTimestamp(String cacheType, String key) {
+    switch (cacheType) {
+      case 'categories':
+        _categoryCacheTimestamp[key] = DateTime.now();
+        break;
+      case 'authors':
+        _authorCacheTimestamp[key] = DateTime.now();
+        break;
+      case 'books':
+        _bookCacheTimestamp[key] = DateTime.now();
+        break;
+      case 'allBooks':
+        _allBooksCacheTimestamp = DateTime.now();
+        break;
+      case 'reviews':
+        _reviewsCacheTimestamp[int.parse(key)] = DateTime.now();
+        break;
+      case 'userReview':
+        _userReviewCacheTimestamp[int.parse(key)] = DateTime.now();
+        break;
+    }
+  }
+
+  /// Check if cached data should be refreshed based on timestamp
+  bool _shouldRefreshCache(String cacheType, String key) {
+    switch (cacheType) {
+      case 'categories':
+        return _isCacheStale(_categoryCacheTimestamp[key]);
+      case 'authors':
+        return _isCacheStale(_authorCacheTimestamp[key]);
+      case 'books':
+        return _isCacheStale(_bookCacheTimestamp[key]);
+      case 'allBooks':
+        return _isCacheStale(_allBooksCacheTimestamp);
+      case 'reviews':
+        return _isCacheStale(_reviewsCacheTimestamp[int.parse(key)]);
+      case 'userReview':
+        return _isCacheStale(_userReviewCacheTimestamp[int.parse(key)]);
+      default:
+        return false;
+    }
+  }
 
   // ==================== EXISTING METHODS ====================
 
@@ -49,12 +114,15 @@ class CatalogService {
 
     if (!forceRefresh) {
       final cached = _categoryCache[key];
-      if (cached != null) return List<Category>.unmodifiable(cached);
+      if (cached != null && !_shouldRefreshCache('categories', key)) {
+        return List<Category>.unmodifiable(cached);
+      }
       final pending = _categoryPending[key];
       if (pending != null) return pending;
     } else {
       _categoryCache.remove(key);
       _categoryPending.remove(key);
+      _categoryCacheTimestamp.remove(key);
     }
 
     final future = _client
@@ -89,6 +157,11 @@ class CatalogService {
     return Category.fromJson(_unwrap(json));
   }
 
+  /// Simplified method to get all categories (convenience wrapper)
+  Future<List<Category>> getCategories({bool forceRefresh = false}) async {
+    return fetchCategories(auth: true, forceRefresh: forceRefresh);
+  }
+
   Future<List<Author>> fetchAuthors({
     String? search,
     bool auth = false,
@@ -101,12 +174,15 @@ class CatalogService {
 
     if (!forceRefresh) {
       final cached = _authorCache[key];
-      if (cached != null) return List<Author>.unmodifiable(cached);
+      if (cached != null && !_shouldRefreshCache('authors', key)) {
+        return List<Author>.unmodifiable(cached);
+      }
       final pending = _authorPending[key];
       if (pending != null) return pending;
     } else {
       _authorCache.remove(key);
       _authorPending.remove(key);
+      _authorCacheTimestamp.remove(key);
     }
 
     final future = _client
@@ -124,6 +200,7 @@ class CatalogService {
                     .toList(growable: false)
               : const <Author>[];
           _authorCache[key] = list;
+          _authorCacheTimestamp[key] = DateTime.now();
           _authorPending.remove(key);
           return List<Author>.unmodifiable(list);
         })
@@ -250,6 +327,21 @@ class CatalogService {
   Future<Book> getBook(int id, {bool auth = false}) async {
     final json = await _client.getJson('/api/books/$id', auth: auth);
     return Book.fromJson(_unwrap(json));
+  }
+
+  Future<String> askBookQuestion(int bookId, String question) async {
+    final response = await _client.postJson(
+      '/api/books/$bookId/ask',
+      body: {'question': question},
+      auth: true,
+    );
+
+    final answer = response['answer']?.toString();
+    if (answer == null || answer.isEmpty) {
+      throw ApiException('Failed to get AI answer');
+    }
+
+    return answer;
   }
 
   Future<List<Book>> _fetchAllBooks({bool auth = false}) async {
@@ -423,6 +515,7 @@ class CatalogService {
         if (payload == null) {
           debugPrint('User review payload is null');
           _userReviewCache[bookId] = null;
+          _userReviewCacheTimestamp[bookId] = DateTime.now();
           _userReviewPending.remove(bookId);
           return null;
         }
@@ -437,6 +530,7 @@ class CatalogService {
         if (reviewJson == null) {
           debugPrint('Unexpected user review payload: $payload');
           _userReviewCache[bookId] = null;
+          _userReviewCacheTimestamp[bookId] = DateTime.now();
           _userReviewPending.remove(bookId);
           return null;
         }
@@ -464,7 +558,6 @@ class CatalogService {
       }
     }
 
-
     final future = fetchUserReview();
     _userReviewPending[bookId] = future;
     return future;
@@ -481,8 +574,10 @@ class CatalogService {
     final trimmedComment = comment?.trim();
     final payload = <String, dynamic>{
       'rating': rating,
-      if (trimmedTitle != null && trimmedTitle.isNotEmpty) 'title': trimmedTitle,
-      if (trimmedComment != null && trimmedComment.isNotEmpty) 'comment': trimmedComment,
+      if (trimmedTitle != null && trimmedTitle.isNotEmpty)
+        'title': trimmedTitle,
+      if (trimmedComment != null && trimmedComment.isNotEmpty)
+        'comment': trimmedComment,
     };
     final json = await _client.postJson(
       '/api/books/$bookId/reviews',
@@ -511,8 +606,10 @@ class CatalogService {
     final trimmedComment = comment?.trim();
     final payload = <String, dynamic>{
       'rating': rating,
-      if (trimmedTitle != null && trimmedTitle.isNotEmpty) 'title': trimmedTitle,
-      if (trimmedComment != null && trimmedComment.isNotEmpty) 'comment': trimmedComment,
+      if (trimmedTitle != null && trimmedTitle.isNotEmpty)
+        'title': trimmedTitle,
+      if (trimmedComment != null && trimmedComment.isNotEmpty)
+        'comment': trimmedComment,
     };
     final json = await _client.putJson(
       '/api/books/$bookId/reviews/$reviewId',
@@ -622,27 +719,44 @@ class CatalogService {
 
   // ==================== OTHER METHODS ====================
 
-  void markBookOwned(int bookId) {
-    var changed = false;
+  void markBookOwned(int bookId, {int? availableCopies}) {
+    Book applyUpdate(Book book) {
+      final newCopies =
+          availableCopies ??
+          (book.availableCopies > 0 ? book.availableCopies - 1 : 0);
+      if (book.owned && book.availableCopies == newCopies) {
+        return book;
+      }
+      final sanitizedCopies = newCopies < 0 ? 0 : newCopies;
+      return book.copyWith(owned: true, availableCopies: sanitizedCopies);
+    }
 
     if (_allBooksCache != null) {
       final updated = _allBooksCache!
-          .map((book) => book.id == bookId ? book.copyWith(owned: true) : book)
+          .map((book) => book.id == bookId ? applyUpdate(book) : book)
           .toList(growable: false);
       if (!_listEquals(_allBooksCache!, updated)) {
         _allBooksCache = updated;
-        changed = true;
       }
     }
 
     _bookCache.updateAll((key, paginated) {
+      var listChanged = false;
       final updatedData = paginated.data
-          .map((book) => book.id == bookId ? book.copyWith(owned: true) : book)
+          .map((book) {
+            if (book.id != bookId) return book;
+            final updatedBook = applyUpdate(book);
+            if (!identical(book, updatedBook)) {
+              listChanged = true;
+            }
+            return updatedBook;
+          })
           .toList(growable: false);
-      if (_listEquals(paginated.data, updatedData)) {
+
+      if (!listChanged) {
         return paginated;
       }
-      changed = true;
+
       return PaginatedResult(
         data: updatedData,
         currentPage: paginated.currentPage,
@@ -652,16 +766,20 @@ class CatalogService {
       );
     });
 
-    if (changed || _ownedBookNotifier.value != bookId) {
-      _ownedBookNotifier.value = bookId;
+    // Notify listeners so UI can refresh inventories.
+    if (_ownedBookNotifier.value == bookId) {
+      _ownedBookNotifier.value = null;
     }
+    _ownedBookNotifier.value = bookId;
   }
 
   bool _listEquals(List<Book> a, List<Book> b) {
     if (identical(a, b)) return true;
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id || a[i].owned != b[i].owned) {
+      if (a[i].id != b[i].id ||
+          a[i].owned != b[i].owned ||
+          a[i].availableCopies != b[i].availableCopies) {
         return false;
       }
     }

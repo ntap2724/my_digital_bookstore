@@ -9,8 +9,11 @@ use App\Models\BookReview;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class BookController extends Controller
 {
@@ -223,7 +226,9 @@ class BookController extends Controller
             'isbn' => $book->isbn,
             'language' => $book->language,
             'cover_image_url' => $book->cover_image_url,
-            'file_url' => $book->file_url,
+            'pdf_filename' => $book->pdf_filename,
+            'pdf_file_size' => $book->pdf_file_size,
+            'pdf_page_count' => $book->pdf_page_count,
             'published_at' => optional($book->published_at)->toISOString(),
             'status' => $book->status,
             'tags' => $book->tags ?? [],
@@ -259,6 +264,234 @@ class BookController extends Controller
         return $book->userBooks()
             ->where('user_id', $currentUser->id)
             ->exists();
+    }
+
+    /**
+     * Upload PDF file for a book (Admin only)
+     */
+    public function uploadPdf(Request $request, Book $book)
+    {
+        Gate::authorize('admin');
+
+        $request->validate([
+            'pdf' => 'required|file|mimes:pdf|max:51200', // Max 50MB
+        ]);
+
+        try {
+            $pdfFile = $request->file('pdf');
+            
+            // Delete old PDF if exists
+            if ($book->pdf_filename) {
+                $book->deletePdf();
+            }
+            
+            // Generate unique filename
+            $filename = $book->id . '_' . time() . '.pdf';
+            
+            // Store PDF in books disk
+            $pdfFile->storeAs('', $filename, 'books');
+            
+            // Get file info
+            $fileSize = $pdfFile->getSize();
+            
+            // Update book record
+            $book->update([
+                'pdf_filename' => $filename,
+                'pdf_file_size' => $fileSize,
+                'pdf_page_count' => null, // Can be calculated later if needed
+            ]);
+            
+            // Refresh book with relationships
+            $book->load(['category', 'authors']);
+            
+            return response()->json([
+                'message' => 'PDF uploaded successfully',
+                'book' => $book,
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to upload PDF',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Download/Stream PDF file (User must own the book)
+     */
+    public function downloadPdf(Request $request, Book $book)
+    {
+        $user = $request->user();
+        
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        
+        // Check ownership
+        $owned = DB::table('user_books')
+            ->where('user_id', $user->id)
+            ->where('book_id', $book->id)
+            ->exists();
+        
+        if (!$owned) {
+            return response()->json([
+                'message' => 'You must purchase this book first',
+            ], 403);
+        }
+        
+        // Check PDF exists
+        if (!$book->hasPdf()) {
+            return response()->json([
+                'message' => 'PDF file not available for this book',
+            ], 404);
+        }
+        
+        // Stream PDF file
+        $path = $book->getPdfPath();
+        
+        return response()->download($path, $book->slug . '.pdf', [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $book->slug . '.pdf"',
+        ]);
+    }
+
+    /**
+     * Delete PDF file for a book (Admin only)
+     */
+    public function deletePdf(Request $request, Book $book)
+    {
+        Gate::authorize('admin');
+
+        if (!$book->hasPdf()) {
+            return response()->json([
+                'message' => 'No PDF file to delete',
+            ], 404);
+        }
+
+        try {
+            $book->deletePdf();
+            
+            $book->update([
+                'pdf_filename' => null,
+                'pdf_file_size' => null,
+                'pdf_page_count' => null,
+            ]);
+            
+            return response()->json([
+                'message' => 'PDF deleted successfully',
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete PDF',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Ask a question about a book using GPT-5 (requires ownership)
+     */
+    public function askQuestion(Request $request, Book $book)
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(401, 'Authentication required');
+        }
+
+        $owns = UserBook::query()
+            ->where('user_id', $user->id)
+            ->where('book_id', $book->id)
+            ->exists();
+
+        if (! $owns) {
+            return response()->json([
+                'message' => 'You must own this book to ask questions.',
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'question' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        $apiKey = config('services.openai.key');
+        $baseUrl = rtrim(config('services.openai.base_url', 'https://api.openai.com'), '/');
+
+        if (empty($apiKey)) {
+            return response()->json([
+                'message' => 'AI service not configured.',
+            ], 500);
+        }
+
+        $book->loadMissing(['authors', 'category']);
+
+        $contextParts = [
+            'Title: '.$book->title,
+        ];
+
+        if ($book->subtitle) {
+            $contextParts[] = 'Subtitle: '.$book->subtitle;
+        }
+
+        if ($book->category) {
+            $contextParts[] = 'Category: '.$book->category->name;
+        }
+
+        if ($book->authors->isNotEmpty()) {
+            $contextParts[] = 'Authors: '.$book->authors->pluck('name')->join(', ');
+        }
+
+        if ($book->description) {
+            $contextParts[] = 'Description: '.Str::limit($book->description, 2000);
+        }
+
+        $context = implode("\n", array_filter($contextParts));
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.$apiKey,
+                'Content-Type' => 'application/json',
+            ])->post("{$baseUrl}/v1/chat/completions", [
+                'model' => 'gpt-5',
+                'temperature' => 0.6,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are a helpful literary assistant. Answer concisely based on the provided book context. If the context does not contain the answer, state that you are unsure.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => "Book context:\n{$context}\n\nQuestion: {$data['question']}",
+                    ],
+                ],
+            ]);
+
+            if ($response->failed()) {
+                return response()->json([
+                    'message' => 'Failed to contact AI service.',
+                    'error' => $response->json(),
+                ], 502);
+            }
+
+            $answer = data_get($response->json(), 'choices.0.message.content');
+
+            if (! $answer) {
+                return response()->json([
+                    'message' => 'No answer returned from AI service.',
+                ], 502);
+            }
+
+            return response()->json([
+                'answer' => trim($answer),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Unable to generate answer.',
+            ], 500);
+        }
     }
 }
 

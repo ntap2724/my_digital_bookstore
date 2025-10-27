@@ -462,6 +462,93 @@ class AppLocalizations {
   String get filter => _t('filter');
   String get clear => _t('clear');
   String lastUpdated(String date) => _fmt('lastUpdated', {'date': date});
+  
+  // ---- Book Explorer / Search / Filter ----
+  String get searchBooksPlaceholder => _t('searchBooksPlaceholder');
+  String get sortByLabel => _t('sortByLabel');
+  String get sortTitleAsc => _t('sortTitleAsc');
+  String get sortTitleDesc => _t('sortTitleDesc');
+  String get sortPriceAsc => _t('sortPriceAsc');
+  String get sortPriceDesc => _t('sortPriceDesc');
+  String get sortRatingDesc => _t('sortRatingDesc');
+  String get sortRatingAsc => _t('sortRatingAsc');
+  String get filterByCategoryLabel => _t('filterByCategoryLabel');
+  String get filterByAuthorLabel => _t('filterByAuthorLabel');
+  String get allCategories => _t('allCategories');
+  String get allAuthors => _t('allAuthors');
+  String get showingBooksCount => _t('showingBooksCount');
+  String get showingBooksCountPlural => _t('showingBooksCountPlural');
+  String get suggestionsCategories => _t('suggestionsCategories');
+  String get suggestionsTitles => _t('suggestionsTitles');
+  String get suggestionsAuthors => _t('suggestionsAuthors');
+  String get filterByThisCategory => _t('filterByThisCategory');
+  String get filterByThisAuthor => _t('filterByThisAuthor');
+  String get noBooksByAuthor => _t('noBooksByAuthor');
+  String get checkBackLater => _t('checkBackLater');
+  String get tryAdjustingFilters => _t('tryAdjustingFilters');
+  String get clearFilters => _t('clearFilters');
+  String get showFilters => _t('showFilters');
+  String get hideFilters => _t('hideFilters');
+  String get filtersButton => _t('filtersButton');
+  String filtersActive(String count) => _t('filtersActive').replaceAll('{count}', count);
+  String showMoreFilters(String count) => _t('showMoreFilters').replaceAll('{count}', count);
+  String get showLessFilters => _t('showLessFilters');
+  String get applyFilters => _t('applyFilters');
+  String get clearAllFilters => _t('clearAllFilters');
+  String get activeFiltersLabel => _t('activeFiltersLabel');
+  String categoriesCount(String count) => _t('categoriesCount').replaceAll('{count}', count);
+  String authorsCount(String count) => _t('authorsCount').replaceAll('{count}', count);
+  String categoriesSelected(String count) => _t('categoriesSelected').replaceAll('{count}', count);
+  String authorsSelected(String count) => _t('authorsSelected').replaceAll('{count}', count);
+  String get noFiltersActive => _t('noFiltersActive');
+  String get noBooksFound => _t('noBooksFound');
+  
+  // ---- Auth / Registration ----
+  String get createAccount => _t('createAccount');
+  String get createAccountSubtitle => _t('createAccountSubtitle');
+  String get personalInformation => _t('personalInformation');
+  String get accountSecurity => _t('accountSecurity');
+  String get fullNameLabel => _t('fullNameLabel');
+  String get phoneLabel => _t('phoneLabel');
+  String get passwordLabel => _t('passwordLabel');
+  String get confirmPasswordLabel => _t('confirmPasswordLabel');
+  String get dobLabel => _t('dobLabel');
+  String get dobHint => _t('dobHint');
+  String get genderLabel => _t('genderLabel');
+  String get genderMale => _t('genderMale');
+  String get genderFemale => _t('genderFemale');
+  String get genderOther => _t('genderOther');
+  String get genderHint => _t('genderHint');
+  String get agreeToTermsPrefix => _t('agreeToTermsPrefix');
+  String get termsOfService => _t('termsOfService');
+  String get andText => _t('andText');
+  String get privacyPolicy => _t('privacyPolicy');
+  String get registerButton => _t('registerButton');
+  String get registerButtonDisabledHint => _t('registerButtonDisabledHint');
+  String get alreadyHaveAccount => _t('alreadyHaveAccount');
+  String get loginLink => _t('loginLink');
+  String get rememberPassword => _t('rememberPassword');
+  String get emailConfirmedTooltip => _t('emailConfirmedTooltip');
+  String get processingText => _t('processingText');
+  String get passwordWeak => _t('passwordWeak');
+  String get passwordMedium => _t('passwordMedium');
+  String get passwordStrong => _t('passwordStrong');
+  String get passwordStrengthLabel => _t('passwordStrengthLabel');
+  
+  // ---- PDF Viewer ----
+  String get readBook => _t('readBook');
+  String get seeDetails => _t('seeDetails');
+  String get downloadingPdf => _t('downloadingPdf');
+  String get pdfNotAvailable => _t('pdfNotAvailable');
+  String get pdfDownloadFailed => _t('pdfDownloadFailed');
+  String get askBookTitle => _t('askBookTitle');
+  String get askBookPromptLabel => _t('askBookPromptLabel');
+  String get askBookPlaceholder => _t('askBookPlaceholder');
+  String get askBookSubmit => _t('askBookSubmit');
+  String get askBookGenerating => _t('askBookGenerating');
+  String get askBookAnswerHeading => _t('askBookAnswerHeading');
+  String get askBookErrorGeneric => _t('askBookErrorGeneric');
+  
   // ---- Error texts ----
   String get errorLoadingInfo => _t('errorLoadingInfo');
 }

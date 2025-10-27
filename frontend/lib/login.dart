@@ -6,7 +6,7 @@ import 'package:my_flutter_app/widgets/app_form_field.dart';
 import 'package:my_flutter_app/widgets/bookstore_hero.dart';
 import 'package:my_flutter_app/widgets/gradient_card.dart';
 import 'package:my_flutter_app/widgets/link_button.dart';
-import 'package:my_flutter_app/widgets/primary_button.dart';
+import 'package:my_flutter_app/widgets/responsive_auth_layout.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -175,15 +175,8 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 16 : 20,
-                vertical: isSmallScreen ? 16 : 24,
-              ),
-              child: Column(
+        child: ResponsiveAuthLayout(
+          child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Hero Section
@@ -191,7 +184,8 @@ class _LoginPageState extends State<LoginPage> {
                     BookStoreHero(
                       icon: Icons.menu_book_rounded,
                       title: t.login,
-                      iconSize: isSmallScreen ? 40 : 48,
+                      iconSize: isSmallScreen ? 36 : 40,
+                      compact: true,
                     ),
                   // User badge (shown after email confirmation)
                   Builder(
@@ -239,45 +233,49 @@ class _LoginPageState extends State<LoginPage> {
                           child: GradientCard(
                             elevation: 2,
                             margin: EdgeInsets.zero,
-                            padding: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.all(16),
                             borderRadius: 16,
                             child: Column(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(3),
+                                  padding: const EdgeInsets.all(2),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
                                   ),
                                   child: CircleAvatar(
-                                    radius: 36,
+                                    radius: 24,
                                     backgroundColor:
                                         Theme.of(context).colorScheme.primaryContainer,
                                     child: Text(
                                       avatarText,
                                       style: const TextStyle(
-                                        fontSize: 28,
+                                        fontSize: 20,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
                                 Text(
                                   displayName,
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                                   ),
                                   textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Text(
                                   email,
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                                   ),
                                   textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -286,9 +284,9 @@ class _LoginPageState extends State<LoginPage> {
                       );
                     },
                   ),
-                  if (_emailConfirmed) const SizedBox(height: 16),
+                  if (_emailConfirmed) const SizedBox(height: 12),
                   if (_emailConfirmed) ...[
-                    FilledButton.tonalIcon(
+                    TextButton.icon(
                       onPressed: () {
                         setState(() {
                           _emailConfirmed = false;
@@ -296,13 +294,17 @@ class _LoginPageState extends State<LoginPage> {
                         });
                         Future.microtask(() => _emailFocus.requestFocus());
                       },
-                      icon: const Icon(Icons.swap_horiz, size: 20),
+                      icon: const Icon(Icons.swap_horiz, size: 18),
                       label: Text(context.l10n.signInWithAnotherEmail),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(48, 48),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 40),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
-                    SizedBox(height: isSmallScreen ? 20 : 24),
+                    SizedBox(height: isSmallScreen ? 16 : 20),
                   ],
                   // Form
                   Form(
@@ -349,16 +351,20 @@ class _LoginPageState extends State<LoginPage> {
                             SizedBox(height: isSmallScreen ? 20 : 24),
                           // Email field (read-only when confirmed)
                           if (_emailConfirmed == true)
-                            AppFormField(
-                              controller: _emailCtrl,
-                              enabled: false,
-                              decoration: InputDecoration(
-                                labelText: t.email,
-                                prefixIcon: const Icon(Icons.alternate_email),
+                            Tooltip(
+                              message: t.emailConfirmedTooltip,
+                              child: AppFormField(
+                                controller: _emailCtrl,
+                                enabled: false,
+                                decoration: InputDecoration(
+                                  labelText: t.email,
+                                  prefixIcon: const Icon(Icons.alternate_email),
+                                  suffixIcon: const Icon(Icons.lock_outline, size: 18),
+                                ),
                               ),
                             ),
                           if (_emailConfirmed == true)
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
                           // Password field
                           if (_emailConfirmed == true)
                             AppFormField(
@@ -409,42 +415,52 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           if (_emailConfirmed == true)
-                            SizedBox(height: isSmallScreen ? 20 : 24),
+                            SizedBox(height: isSmallScreen ? 16 : 20),
                           if (_emailConfirmed == false) const SizedBox.shrink(),
                           // Primary button (Continue or Login)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: PrimaryButton.icon(
-                              onPressed: _loading
-                                  ? null
-                                  : (_emailConfirmed == true
-                                        ? _doLogin
-                                        : _confirmEmail),
-                              icon: _loading
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Icon(
-                                      _emailConfirmed == true
-                                          ? Icons.login
-                                          : Icons.arrow_forward,
+                          FilledButton.icon(
+                            onPressed: _loading
+                                ? null
+                                : (_emailConfirmed == true
+                                      ? _doLogin
+                                      : _confirmEmail),
+                            icon: _loading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
                                     ),
-                              label: Text(
-                                _loading
-                                    ? t.loggingIn
-                                    : (_emailConfirmed == true
-                                          ? t.login
-                                          : t.continueAction),
+                                  )
+                                : Icon(
+                                    _emailConfirmed == true
+                                        ? Icons.login
+                                        : Icons.arrow_forward,
+                                  ),
+                            label: Text(
+                              _loading
+                                  ? t.loggingIn
+                                  : (_emailConfirmed == true
+                                        ? t.login
+                                        : t.continueAction),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 52),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                           ),
                         ],
-                        SizedBox(height: isSmallScreen ? 20 : 24),
+                        SizedBox(height: isSmallScreen ? 16 : 20),
                         // Register link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -480,8 +496,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-            ),
-          ),
         ),
       ),
     );

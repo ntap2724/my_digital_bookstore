@@ -9,12 +9,14 @@ class BookStoreHero extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.iconSize = 48,
+    this.compact = false,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final double iconSize;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -22,14 +24,17 @@ class BookStoreHero extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return GradientCard(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-      margin: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.symmetric(
+        vertical: compact ? 20 : 32,
+        horizontal: compact ? 16 : 24,
+      ),
+      margin: EdgeInsets.only(bottom: compact ? 16 : 24),
       elevation: 2,
       child: Column(
         children: [
           // Icon with background circle
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(compact ? 12 : 16),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: colorScheme.surface.withValues(alpha: 0.9),
@@ -47,23 +52,25 @@ class BookStoreHero extends StatelessWidget {
               color: colorScheme.primary,
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: compact ? 12 : 20),
           // Title
           Text(
             title,
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w700,
+              fontSize: compact ? 20 : null,
               color: colorScheme.onPrimaryContainer,
             ),
           ),
           // Subtitle
           if (subtitle != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 6 : 8),
             Text(
               subtitle!,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: compact ? 13 : null,
                 color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
               ),
             ),

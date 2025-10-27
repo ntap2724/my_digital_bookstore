@@ -8,6 +8,7 @@ import 'package:my_flutter_app/services/cart_service.dart';
 import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
 import 'package:my_flutter_app/widgets/rating_stars.dart';
+import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
 class BookDetailArgs {
   const BookDetailArgs({required this.bookId, this.initial});
@@ -135,7 +136,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       debugPrint('📥 Loading reviews...');
       final data = await _catalogService.getBookReviews(
         bookId,
-        forceRefresh: true,
+        forceRefresh: false, // Use smart caching instead of force refresh
       );
 
       debugPrint('✅ Reviews loaded successfully');
@@ -149,7 +150,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         debugPrint('👤 Loading user review...');
         userReview = await _catalogService.getUserReview(
           bookId,
-          forceRefresh: true,
+          forceRefresh: false, // Use smart caching instead of force refresh
         );
 
         if (userReview != null) {
@@ -335,8 +336,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
         await _cartService.remove(book.id);
       }
       if (!mounted) return;
-      final updated = book.copyWith(owned: true);
-      _catalogService.markBookOwned(book.id);
+      final updatedAvailable =
+          book.availableCopies > 0 ? book.availableCopies - 1 : 0;
+      final updated = book.copyWith(
+        owned: true,
+        availableCopies: updatedAvailable,
+      );
+      _catalogService.markBookOwned(
+        book.id,
+        availableCopies: updatedAvailable,
+      );
       setState(() => _book = updated);
       ScaffoldMessenger.of(
         context,
@@ -361,7 +370,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget build(BuildContext context) {
     final t = context.l10n;
     final book = _book;
-    return Scaffold(
+    
+    return ResponsiveNavigationWrapper(
+      currentRoute: '/book',
       appBar: AppBar(title: Text(book?.title ?? t.details)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -369,32 +380,216 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ? _ErrorView(error: _error!, onRetry: () => _loadBook(book?.id ?? 0))
           : book == null
           ? Center(child: Text(t.catalogEmpty))
-          : SingleChildScrollView(
+          : _buildBookContent(context, book, t),
+    );
+  }
+
+  Widget _buildBookContent(BuildContext context, Book book, AppLocalizations t) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        
+        // Breakpoints aligned with ResponsiveNavigationWrapper:
+        // Mobile: < 600, Tablet: 600-840, Desktop: >= 840
+        final isTablet = screenWidth >= 600 && screenWidth < 840;
+        final isDesktop = screenWidth >= 840;
+        
+        if (isDesktop) {
+          // Desktop: Two-column layout within the ResponsiveNavigationWrapper content area
+          // Use two-column only if screen is wide enough
+          if (constraints.maxWidth >= 1200) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left column: Book details with card wrapper
+                Expanded(
+                  flex: 1,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Card(
+                      elevation: 4,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: _BookDetailBody(
+                          book: book,
+                          purchasing: _purchasing,
+                          addingToCart: _addingToCart,
+                          isInCart: _cartService.itemFor(book.id) != null,
+                          onPurchase: () => _purchase(book, t),
+                          onAddToCart: () => _addToCart(book, t),
+                          isDesktop: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Spacing between columns
+                const SizedBox(width: 16),
+                // Right column: Reviews with max-width constraint
+                Expanded(
+                  flex: 1,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      child: _ReviewsSection(
+                        reviews: _reviews,
+                        averageRating: _averageRating,
+                        totalReviews: _totalReviews,
+                        ratingBreakdown: _ratingBreakdown,
+                        loading: _loadingReviews,
+                        userReview: _userReview,
+                        bookOwned: book.owned,
+                        onSubmitReview: _submitReview,
+                        currentUserId: _currentUserId,
+                        isDesktop: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // Smaller desktop/tablet: Single column with smart padding and top alignment
+            final horizontalPadding = (constraints.maxWidth * 0.05).clamp(24.0, 60.0);
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1000),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: 24,
+                    ),
+                    child: Column(
+                      children: [
+                        Card(
+                          elevation: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: _BookDetailBody(
+                              book: book,
+                              purchasing: _purchasing,
+                              addingToCart: _addingToCart,
+                              isInCart: _cartService.itemFor(book.id) != null,
+                              onPurchase: () => _purchase(book, t),
+                              onAddToCart: () => _addToCart(book, t),
+                              isDesktop: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Card(
+                          elevation: 4,
+                          child: _ReviewsSection(
+                            reviews: _reviews,
+                            averageRating: _averageRating,
+                            totalReviews: _totalReviews,
+                            ratingBreakdown: _ratingBreakdown,
+                            loading: _loadingReviews,
+                            userReview: _userReview,
+                            bookOwned: book.owned,
+                            onSubmitReview: _submitReview,
+                            currentUserId: _currentUserId,
+                            isDesktop: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+        } else if (isTablet) {
+          // Tablet (600-840px): Single column with Card wrapper and moderate padding
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Column(
+                    children: [
+                      Card(
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: _BookDetailBody(
+                            book: book,
+                            purchasing: _purchasing,
+                            addingToCart: _addingToCart,
+                            isInCart: _cartService.itemFor(book.id) != null,
+                            onPurchase: () => _purchase(book, t),
+                            onAddToCart: () => _addToCart(book, t),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Card(
+                        elevation: 4,
+                        child: _ReviewsSection(
+                          reviews: _reviews,
+                          averageRating: _averageRating,
+                          totalReviews: _totalReviews,
+                          ratingBreakdown: _ratingBreakdown,
+                          loading: _loadingReviews,
+                          userReview: _userReview,
+                          bookOwned: book.owned,
+                          onSubmitReview: _submitReview,
+                          currentUserId: _currentUserId,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Mobile (< 600px): Single column with Card wrapper and minimal padding
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
                 children: [
-                  _BookDetailBody(
-                    book: book,
-                    purchasing: _purchasing,
-                    addingToCart: _addingToCart,
-                    isInCart: _cartService.itemFor(book.id) != null,
-                    onPurchase: () => _purchase(book, t),
-                    onAddToCart: () => _addToCart(book, t),
+                  Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: _BookDetailBody(
+                        book: book,
+                        purchasing: _purchasing,
+                        addingToCart: _addingToCart,
+                        isInCart: _cartService.itemFor(book.id) != null,
+                        onPurchase: () => _purchase(book, t),
+                        onAddToCart: () => _addToCart(book, t),
+                      ),
+                    ),
                   ),
-                  const Divider(height: 32, thickness: 8),
-                  _ReviewsSection(
-                    reviews: _reviews,
-                    averageRating: _averageRating,
-                    totalReviews: _totalReviews,
-                    ratingBreakdown: _ratingBreakdown,
-                    loading: _loadingReviews,
-                    userReview: _userReview,
-                    bookOwned: book.owned,
-                    onSubmitReview: _submitReview,
-                    currentUserId: _currentUserId,
+                  const SizedBox(height: 24),
+                  Card(
+                    elevation: 4,
+                    child: _ReviewsSection(
+                      reviews: _reviews,
+                      averageRating: _averageRating,
+                      totalReviews: _totalReviews,
+                      ratingBreakdown: _ratingBreakdown,
+                      loading: _loadingReviews,
+                      userReview: _userReview,
+                      bookOwned: book.owned,
+                      onSubmitReview: _submitReview,
+                      currentUserId: _currentUserId,
+                    ),
                   ),
                 ],
               ),
             ),
+          );
+        }
+      },
     );
   } // 👈 ĐÃ ĐÓNG ĐÚNG METHOD build
 } // 👈 ĐÃ ĐÓNG CLASS _BookDetailPageState
@@ -409,6 +604,7 @@ class _BookDetailBody extends StatelessWidget {
     required this.isInCart,
     required this.onPurchase,
     required this.onAddToCart,
+    this.isDesktop = false,
   });
 
   final Book book;
@@ -417,100 +613,202 @@ class _BookDetailBody extends StatelessWidget {
   final bool isInCart;
   final VoidCallback onPurchase;
   final VoidCallback onAddToCart;
+  final bool isDesktop;
 
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
+    final padding = isDesktop 
+        ? const EdgeInsets.all(24)
+        : const EdgeInsets.all(16);
+
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(book.title, style: Theme.of(context).textTheme.headlineSmall),
+          // Title with responsive text size
+          Text(
+            book.title, 
+            style: isDesktop 
+                ? Theme.of(context).textTheme.headlineMedium
+                : Theme.of(context).textTheme.headlineSmall,
+          ),
           if (book.subtitle != null && book.subtitle!.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: isDesktop ? 12 : 8),
             Text(
               book.subtitle!,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: isDesktop
+                  ? Theme.of(context).textTheme.titleLarge
+                  : Theme.of(context).textTheme.titleMedium,
             ),
           ],
-          const SizedBox(height: 12),
+          SizedBox(height: isDesktop ? 16 : 12),
+          
+          // Authors and Category - Always vertical for clean layout
           if (book.authors.isNotEmpty)
             Text(
               '${t.bookAuthors}: ${book.authors.map((a) => a.name).join(', ')}',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           if (book.category != null) ...[
-            const SizedBox(height: 4),
-            Text('${t.bookCategory}: ${book.category!.name}'),
+            SizedBox(height: isDesktop ? 8 : 4),
+            Text(
+              '${t.bookCategory}: ${book.category!.name}',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ],
-          const SizedBox(height: 12),
-          Text(t.bookPrice(book.creditPrice.toString())),
-          const SizedBox(height: 12),
+          
+          SizedBox(height: isDesktop ? 16 : 12),
+          
+          // Price with prominent display on desktop
+          Text(
+            t.bookPrice(book.creditPrice.toString()),
+            style: isDesktop
+                ? Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    )
+                : Theme.of(context).textTheme.titleMedium,
+          ),
+          SizedBox(height: isDesktop ? 16 : 12),
+          
+          // Status
           Text(
             _statusLabel(context, book.status),
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isDesktop ? 24 : 16),
+          
+          // Description
           Text(
             book.description?.trim().isNotEmpty == true
                 ? book.description!
                 : t.bookNoDescription,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: isDesktop
+                ? Theme.of(context).textTheme.bodyLarge
+                : Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: addingToCart || isInCart || book.owned
-                      ? null
-                      : onAddToCart,
-                  icon: addingToCart
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          isInCart
-                              ? Icons.check_circle_outline
-                              : Icons.add_shopping_cart_outlined,
-                        ),
-                  label: Text(
-                    addingToCart
-                        ? context.l10n.loading
-                        : isInCart
-                        ? context.l10n.cartAlreadyContains
-                        : context.l10n.addToCart,
+          SizedBox(height: isDesktop ? 32 : 16),
+          
+          // Responsive button layout
+          if (isDesktop) ...[
+            // Desktop: Expanded buttons that adapt to available space
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: addingToCart || isInCart || book.owned
+                        ? null
+                        : onAddToCart,
+                    icon: addingToCart
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            isInCart
+                                ? Icons.check_circle_outline
+                                : Icons.add_shopping_cart_outlined,
+                          ),
+                    label: Text(
+                      addingToCart
+                          ? context.l10n.loading
+                          : isInCart
+                          ? context.l10n.cartAlreadyContains
+                          : context.l10n.addToCart,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: purchasing || book.owned ? null : onPurchase,
-                  icon: purchasing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          book.owned
-                              ? Icons.check_circle
-                              : Icons.shopping_cart_checkout_outlined,
-                        ),
-                  label: Text(
-                    purchasing
-                        ? context.l10n.loading
-                        : book.owned
-                        ? context.l10n.bookOwnedTag
-                        : context.l10n.purchaseWithCredits,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: purchasing || book.owned ? null : onPurchase,
+                    icon: purchasing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            book.owned
+                                ? Icons.check_circle
+                                : Icons.shopping_cart_checkout_outlined,
+                          ),
+                    label: Text(
+                      purchasing
+                          ? context.l10n.loading
+                          : book.owned
+                          ? context.l10n.bookOwnedTag
+                          : context.l10n.purchaseWithCredits,
+                    ),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ] else ...[
+            // Mobile: Current layout
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: addingToCart || isInCart || book.owned
+                        ? null
+                        : onAddToCart,
+                    icon: addingToCart
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            isInCart
+                                ? Icons.check_circle_outline
+                                : Icons.add_shopping_cart_outlined,
+                          ),
+                    label: Text(
+                      addingToCart
+                          ? context.l10n.loading
+                          : isInCart
+                          ? context.l10n.cartAlreadyContains
+                          : context.l10n.addToCart,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: purchasing || book.owned ? null : onPurchase,
+                    icon: purchasing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            book.owned
+                                ? Icons.check_circle
+                                : Icons.shopping_cart_checkout_outlined,
+                          ),
+                    label: Text(
+                      purchasing
+                          ? context.l10n.loading
+                          : book.owned
+                          ? context.l10n.bookOwnedTag
+                          : context.l10n.purchaseWithCredits,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -540,6 +838,7 @@ class _ReviewsSection extends StatefulWidget {
     required this.bookOwned,
     required this.onSubmitReview,
     this.currentUserId,
+    this.isDesktop = false,
   });
 
   final List<BookReview> reviews;
@@ -551,6 +850,7 @@ class _ReviewsSection extends StatefulWidget {
   final bool bookOwned;
   final Function(int rating, String? title, String? comment) onSubmitReview;
   final int? currentUserId;
+  final bool isDesktop;
 
   @override
   State<_ReviewsSection> createState() => _ReviewsSectionState();
@@ -558,6 +858,7 @@ class _ReviewsSection extends StatefulWidget {
 
 class _ReviewsSectionState extends State<_ReviewsSection> {
   String _sortBy = 'most_helpful';
+  bool _isExpanded = true;
 
   List<BookReview> get _sortedReviews {
     final reviews = List<BookReview>.from(widget.reviews);
@@ -587,13 +888,15 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   Widget build(BuildContext context) {
     final t = context.l10n;
     final theme = Theme.of(context);
+    final maxWidth = widget.isDesktop ? 800.0 : double.infinity;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         // ✅ Header
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(widget.isDesktop ? 20 : 16),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(color: theme.dividerColor, width: 1),
@@ -604,168 +907,297 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
               Expanded(
                 child: Text(
                   t.bookReviewsTitle,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: widget.isDesktop
+                      ? theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        )
+                      : theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                 ),
               ),
               if (!widget.loading && widget.totalReviews > 0)
                 IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_down),
-                  onPressed: () {},
+                  icon: AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.keyboard_arrow_down),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  },
+                  tooltip: _isExpanded ? 'Collapse' : 'Expand',
                 ),
             ],
           ),
         ),
 
         // ✅ Rating Summary
-        if (widget.totalReviews > 0)
+        if (_isExpanded && widget.totalReviews > 0)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.isDesktop ? 24 : 16,
+              vertical: widget.isDesktop ? 32 : 24,
+            ),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: theme.dividerColor, width: 1),
               ),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Column(
+            child: widget.isDesktop
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.averageRating.toStringAsFixed(1),
-                        style: theme.textTheme.displayLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.averageRating.toStringAsFixed(1),
+                              style: theme.textTheme.displayLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            RatingStars(rating: widget.averageRating, size: 24),
+                            const SizedBox(height: 8),
+                            Text(
+                              t.bookRatingCount(widget.totalReviews),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.textTheme.bodyMedium?.color?.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      RatingStars(rating: widget.averageRating, size: 20),
-                      const SizedBox(height: 4),
-                      Text(
-                        t.bookRatingCount(widget.totalReviews),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodySmall?.color?.withValues(
-                            alpha: 0.7,
-                          ),
+                      const SizedBox(width: 48),
+                      Expanded(
+                        flex: 3,
+                        child: _RatingBreakdown(
+                          ratingBreakdown: widget.ratingBreakdown,
+                          totalReviews: widget.totalReviews,
+                          isDesktop: true,
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            Text(
+                              widget.averageRating.toStringAsFixed(1),
+                              style: theme.textTheme.displayLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            RatingStars(rating: widget.averageRating, size: 20),
+                            const SizedBox(height: 4),
+                            Text(
+                              t.bookRatingCount(widget.totalReviews),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.textTheme.bodySmall?.color?.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 32),
+                      Expanded(
+                        flex: 3,
+                        child: _RatingBreakdown(
+                          ratingBreakdown: widget.ratingBreakdown,
+                          totalReviews: widget.totalReviews,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 32),
-                Expanded(
-                  flex: 3,
-                  child: _RatingBreakdown(
-                    ratingBreakdown: widget.ratingBreakdown,
-                    totalReviews: widget.totalReviews,
-                  ),
-                ),
-              ],
-            ),
           ),
 
         // ✅ Review Composer (MOVED UP - before sort)
-        if (widget.bookOwned)
+        if (_isExpanded && widget.bookOwned)
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(widget.isDesktop ? 20 : 16),
             color: theme.colorScheme.surfaceContainerHighest.withValues(
               alpha: 0.3,
             ),
             child: _ReviewComposer(
               userReview: widget.userReview,
               onSubmit: widget.onSubmitReview,
+              isDesktop: widget.isDesktop,
             ),
           ),
 
         // ✅ Sort dropdown (MOVED DOWN - after composer)
-        if (!widget.loading && widget.reviews.isNotEmpty)
+        if (_isExpanded && !widget.loading && widget.reviews.isNotEmpty)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.isDesktop ? 24 : 16,
+              vertical: widget.isDesktop ? 16 : 12,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(
                 bottom: BorderSide(color: theme.dividerColor, width: 1),
               ),
             ),
-            child: Row(
-              children: [
-                Text(
-                  t.bookReviewSortBy,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+            child: widget.isDesktop
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.bookReviewSortBy,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      DropdownButton<String>(
+                        value: _sortBy,
+                        underline: const SizedBox(),
+                        items: [
+                          DropdownMenuItem(
+                            value: 'most_helpful',
+                            child: Text(t.bookReviewSortMostHelpful),
+                          ),
+                          DropdownMenuItem(
+                            value: 'most_recent',
+                            child: Text(t.bookReviewSortMostRecent),
+                          ),
+                          DropdownMenuItem(
+                            value: 'highest',
+                            child: Text(t.bookReviewSortHighestRating),
+                          ),
+                          DropdownMenuItem(
+                            value: 'lowest',
+                            child: Text(t.bookReviewSortLowestRating),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _sortBy = value);
+                          }
+                        },
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Text(
+                        t.bookReviewSortBy,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      DropdownButton<String>(
+                        value: _sortBy,
+                        underline: const SizedBox(),
+                        items: [
+                          DropdownMenuItem(
+                            value: 'most_helpful',
+                            child: Text(t.bookReviewSortMostHelpful),
+                          ),
+                          DropdownMenuItem(
+                            value: 'most_recent',
+                            child: Text(t.bookReviewSortMostRecent),
+                          ),
+                          DropdownMenuItem(
+                            value: 'highest',
+                            child: Text(t.bookReviewSortHighestRating),
+                          ),
+                          DropdownMenuItem(
+                            value: 'lowest',
+                            child: Text(t.bookReviewSortLowestRating),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _sortBy = value);
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                DropdownButton<String>(
-                  value: _sortBy,
-                  underline: const SizedBox(),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'most_helpful',
-                      child: Text(t.bookReviewSortMostHelpful),
-                    ),
-                    DropdownMenuItem(
-                      value: 'most_recent',
-                      child: Text(t.bookReviewSortMostRecent),
-                    ),
-                    DropdownMenuItem(
-                      value: 'highest',
-                      child: Text(t.bookReviewSortHighestRating),
-                    ),
-                    DropdownMenuItem(
-                      value: 'lowest',
-                      child: Text(t.bookReviewSortLowestRating),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _sortBy = value);
-                    }
-                  },
-                ),
-              ],
-            ),
           ),
 
         // ✅ Reviews List
-        if (widget.loading)
-          const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (widget.reviews.isEmpty)
+        if (_isExpanded && widget.loading)
           Padding(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(widget.isDesktop ? 48 : 32),
+            child: const Center(child: CircularProgressIndicator()),
+          )
+        else if (_isExpanded && widget.reviews.isEmpty)
+          Padding(
+            padding: EdgeInsets.all(widget.isDesktop ? 48 : 32),
             child: Center(
-              child: Text(t.bookNoReviews, style: theme.textTheme.bodyLarge),
+              child: Text(
+                t.bookNoReviews, 
+                style: widget.isDesktop 
+                    ? theme.textTheme.bodyLarge
+                    : theme.textTheme.bodyLarge,
+              ),
             ),
           )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _sortedReviews.length,
-            separatorBuilder: (_, _) =>
-                Divider(height: 1, thickness: 1, color: theme.dividerColor),
-            itemBuilder: (context, index) {
-              return _MSStoreReviewCard(
-                review: _sortedReviews[index],
-                currentUserId: widget.currentUserId,
-              );
-            },
-          ),
-      ],
+        else if (_isExpanded)
+          widget.isDesktop
+              ? Container(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _sortedReviews.length,
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, thickness: 1, color: theme.dividerColor),
+                    itemBuilder: (context, index) {
+                      return _MSStoreReviewCard(
+                        review: _sortedReviews[index],
+                        currentUserId: widget.currentUserId,
+                        isDesktop: true,
+                      );
+                    },
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _sortedReviews.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, thickness: 1, color: theme.dividerColor),
+                  itemBuilder: (context, index) {
+                    return _MSStoreReviewCard(
+                      review: _sortedReviews[index],
+                      currentUserId: widget.currentUserId,
+                    );
+                  },
+                ),
+        ],
+      ),
     );
   }
 }
 
 class _ReviewComposer extends StatefulWidget {
-  const _ReviewComposer({required this.userReview, required this.onSubmit});
+  const _ReviewComposer({
+    required this.userReview, 
+    required this.onSubmit,
+    this.isDesktop = false,
+  });
 
   final BookReview? userReview;
   final Function(int rating, String? title, String? comment) onSubmit;
+  final bool isDesktop;
 
   @override
   State<_ReviewComposer> createState() => _ReviewComposerState();
@@ -829,80 +1261,101 @@ class _ReviewComposerState extends State<_ReviewComposer> {
     final theme = Theme.of(context);
     final isUpdate = widget.userReview != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          isUpdate ? t.bookReviewComposerUpdateTitle : t.bookReviewComposerTitle,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // ✅ Rating selector
-        Text(
-          t.bookReviewRatingLabel,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        RatingSelector(
-          rating: _rating,
-          onRatingChanged: (value) => setState(() => _rating = value),
-        ),
-
-        const SizedBox(height: 16),
-
-        // ✅ Title field (NOW ENABLED)
-        TextField(
-          controller: _titleController,
-          maxLength: 100,
-          decoration: InputDecoration(
-            labelText: t.bookReviewTitleLabel,
-            hintText: t.bookReviewTitleHint,
-            border: const OutlineInputBorder(),
-            counterText: '',
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // ✅ Comment field
-        TextField(
-          controller: _commentController,
-          maxLines: 4,
-          maxLength: 1000,
-          textAlignVertical: TextAlignVertical.top,
-          decoration: InputDecoration(
-            labelText: t.bookReviewCommentLabel,
-            hintText: t.bookReviewCommentHint,
-            border: const OutlineInputBorder(),
-            alignLabelWithHint: true,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // ✅ Submit button
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.icon(
-            onPressed: _submitting ? null : _submit,
-            icon: _submitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: widget.isDesktop ? 700 : double.infinity,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isUpdate ? t.bookReviewComposerUpdateTitle : t.bookReviewComposerTitle,
+            style: widget.isDesktop
+                ? theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                   )
-                : const Icon(Icons.send),
-            label: Text(
-              isUpdate ? t.bookReviewUpdateButton : t.bookReviewSubmitButton,
+                : theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+          ),
+          SizedBox(height: widget.isDesktop ? 20 : 16),
+
+          // ✅ Rating selector
+          Text(
+            t.bookReviewRatingLabel,
+            style: widget.isDesktop
+                ? theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  )
+                : theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+          ),
+          SizedBox(height: widget.isDesktop ? 12 : 8),
+          RatingSelector(
+            rating: _rating,
+            onRatingChanged: (value) => setState(() => _rating = value),
+          ),
+
+          SizedBox(height: widget.isDesktop ? 20 : 16),
+
+          // ✅ Title field
+          TextField(
+            controller: _titleController,
+            maxLength: 100,
+            style: widget.isDesktop ? theme.textTheme.bodyLarge : null,
+            decoration: InputDecoration(
+              labelText: t.bookReviewTitleLabel,
+              hintText: t.bookReviewTitleHint,
+              border: const OutlineInputBorder(),
+              counterText: '',
             ),
           ),
-        ),
-      ],
+
+          SizedBox(height: widget.isDesktop ? 20 : 16),
+
+          // ✅ Comment field
+          TextField(
+            controller: _commentController,
+            maxLines: widget.isDesktop ? 6 : 4,
+            maxLength: 1000,
+            textAlignVertical: TextAlignVertical.top,
+            style: widget.isDesktop ? theme.textTheme.bodyLarge : null,
+            decoration: InputDecoration(
+              labelText: t.bookReviewCommentLabel,
+              hintText: t.bookReviewCommentHint,
+              border: const OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
+          ),
+
+          SizedBox(height: widget.isDesktop ? 24 : 16),
+
+          // ✅ Submit button
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: _submitting ? null : _submit,
+              icon: _submitting
+                  ? SizedBox(
+                      width: widget.isDesktop ? 20 : 16,
+                      height: widget.isDesktop ? 20 : 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
+              label: Text(
+                isUpdate ? t.bookReviewUpdateButton : t.bookReviewSubmitButton,
+                style: widget.isDesktop ? theme.textTheme.titleSmall : null,
+              ),
+              style: widget.isDesktop
+                  ? FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    )
+                  : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -911,10 +1364,12 @@ class _RatingBreakdown extends StatelessWidget {
   const _RatingBreakdown({
     required this.ratingBreakdown,
     required this.totalReviews,
+    this.isDesktop = false,
   });
 
   final Map<int, int> ratingBreakdown;
   final int totalReviews;
+  final bool isDesktop;
 
   @override
   Widget build(BuildContext context) {
@@ -943,6 +1398,7 @@ class _RatingBreakdown extends StatelessWidget {
                   child: _RatingBar(
                     count: ratingBreakdown[star] ?? 0,
                     total: totalReviews,
+                    isDesktop: isDesktop,
                   ),
                 ),
 
@@ -950,10 +1406,12 @@ class _RatingBreakdown extends StatelessWidget {
 
                 // Count
                 SizedBox(
-                  width: 32,
+                  width: isDesktop ? 40 : 32,
                   child: Text(
                     '${ratingBreakdown[star] ?? 0}',
-                    style: theme.textTheme.bodySmall,
+                    style: isDesktop 
+                        ? theme.textTheme.bodyMedium
+                        : theme.textTheme.bodySmall,
                     textAlign: TextAlign.end,
                   ),
                 ),
@@ -966,10 +1424,11 @@ class _RatingBreakdown extends StatelessWidget {
 }
 
 class _RatingBar extends StatelessWidget {
-  const _RatingBar({required this.count, required this.total});
+  const _RatingBar({required this.count, required this.total, this.isDesktop = false});
 
   final int count;
   final int total;
+  final bool isDesktop;
 
   @override
   Widget build(BuildContext context) {
@@ -980,10 +1439,10 @@ class _RatingBar extends StatelessWidget {
       children: [
         // Background
         Container(
-          height: 8,
+          height: isDesktop ? 10 : 8,
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(isDesktop ? 5 : 4),
           ),
         ),
 
@@ -991,10 +1450,10 @@ class _RatingBar extends StatelessWidget {
         FractionallySizedBox(
           widthFactor: percentage,
           child: Container(
-            height: 8,
+            height: isDesktop ? 10 : 8,
             decoration: BoxDecoration(
               color: Colors.amber,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(isDesktop ? 5 : 4),
             ),
           ),
         ),
@@ -1004,10 +1463,11 @@ class _RatingBar extends StatelessWidget {
 }
 
 class _MSStoreReviewCard extends StatefulWidget {
-  const _MSStoreReviewCard({required this.review, this.currentUserId});
+  const _MSStoreReviewCard({required this.review, this.currentUserId, this.isDesktop = false});
 
   final BookReview review;
   final int? currentUserId;
+  final bool isDesktop;
 
   @override
   State<_MSStoreReviewCard> createState() => _MSStoreReviewCardState();
@@ -1202,129 +1662,249 @@ class _MSStoreReviewCardState extends State<_MSStoreReviewCard> {
         ? widget.review.title!
         : t.bookReviewNoTitle;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ✅ Rating stars
-          RatingStars(rating: widget.review.rating.toDouble(), size: 16),
+    return widget.isDesktop
+        ? Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ✅ Rating stars
+                RatingStars(rating: widget.review.rating.toDouble(), size: 18),
 
-          const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
-          // ✅ Title (bold)
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // ✅ Review content
-          if (widget.review.comment != null &&
-              widget.review.comment!.isNotEmpty) ...[
-            Text(widget.review.comment!, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 16),
-          ],
-
-          // ✅ Footer: Author, Date, Actions
-          Row(
-            children: [
-              // Author & Date
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      displayName,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '•',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      _formatDate(widget.review.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
-                    ),
-                  ],
+                // ✅ Title (bold)
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
 
-              // ✅ Like/Dislike buttons (hidden for own reviews)
-              if (!_isOwnReview)
+                const SizedBox(height: 16),
+
+                // ✅ Review content
+                if (widget.review.comment != null &&
+                    widget.review.comment!.isNotEmpty) ...[
+                  Text(widget.review.comment!, style: theme.textTheme.bodyLarge),
+                  const SizedBox(height: 20),
+                ],
+
+                // ✅ Footer: Author, Date, Actions
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Like button
-                    TextButton.icon(
-                      onPressed: _isUpdating ? null : _toggleLike,
-                      icon: Icon(
-                        _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                        size: 16,
-                        color: _liked ? theme.colorScheme.primary : null,
-                      ),
-                      label: Text(
-                        '$_likeCount',
-                        style: TextStyle(
-                          color: _liked ? theme.colorScheme.primary : null,
-                          fontWeight: _liked ? FontWeight.w600 : null,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        minimumSize: const Size(0, 36),
-                      ),
-                    ),
-
-                    const SizedBox(width: 4),
-
-                    // Dislike button
-                    TextButton.icon(
-                      onPressed: _isUpdating ? null : _toggleDislike,
-                      icon: Icon(
-                        _disliked
-                            ? Icons.thumb_down
-                            : Icons.thumb_down_outlined,
-                        size: 16,
-                        color: _disliked ? theme.colorScheme.error : null,
-                      ),
-                      label: Text(
-                        '$_dislikeCount',
-                        style: TextStyle(
-                          color: _disliked ? theme.colorScheme.error : null,
-                          fontWeight: _disliked ? FontWeight.w600 : null,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        minimumSize: const Size(0, 36),
+                    // Author & Date
+                    Expanded(
+                      child: Wrap(
+                        spacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            displayName,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.textTheme.bodyMedium?.color?.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '•',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.textTheme.bodyMedium?.color?.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _formatDate(widget.review.createdAt),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.textTheme.bodyMedium?.color?.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
-                    // ❌ REMOVED: Report button
+                    // ✅ Like/Dislike buttons (hidden for own reviews)
+                    if (!_isOwnReview)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Like button
+                          TextButton.icon(
+                            onPressed: _isUpdating ? null : _toggleLike,
+                            icon: Icon(
+                              _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                              size: 20,
+                              color: _liked ? theme.colorScheme.primary : null,
+                            ),
+                            label: Text(
+                              '$_likeCount',
+                              style: TextStyle(
+                                color: _liked ? theme.colorScheme.primary : null,
+                                fontWeight: _liked ? FontWeight.w600 : null,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              minimumSize: const Size(0, 44),
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // Dislike button
+                          TextButton.icon(
+                            onPressed: _isUpdating ? null : _toggleDislike,
+                            icon: Icon(
+                              _disliked
+                                  ? Icons.thumb_down
+                                  : Icons.thumb_down_outlined,
+                              size: 20,
+                              color: _disliked ? theme.colorScheme.error : null,
+                            ),
+                            label: Text(
+                              '$_dislikeCount',
+                              style: TextStyle(
+                                color: _disliked ? theme.colorScheme.error : null,
+                                fontWeight: _disliked ? FontWeight.w600 : null,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              minimumSize: const Size(0, 44),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-            ],
-          ),
-        ],
-      ),
-    );
+              ],
+            ),
+          )
+        : Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ✅ Rating stars
+                RatingStars(rating: widget.review.rating.toDouble(), size: 16),
+
+                const SizedBox(height: 8),
+
+                // ✅ Title (bold)
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ✅ Review content
+                if (widget.review.comment != null &&
+                    widget.review.comment!.isNotEmpty) ...[
+                  Text(widget.review.comment!, style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 16),
+                ],
+
+                // ✅ Footer: Author, Date, Actions
+                Row(
+                  children: [
+                    // Author & Date
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            displayName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color?.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '•',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color?.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _formatDate(widget.review.createdAt),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color?.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ✅ Like/Dislike buttons (hidden for own reviews)
+                    if (!_isOwnReview)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Like button
+                          TextButton.icon(
+                            onPressed: _isUpdating ? null : _toggleLike,
+                            icon: Icon(
+                              _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                              size: 16,
+                              color: _liked ? theme.colorScheme.primary : null,
+                            ),
+                            label: Text(
+                              '$_likeCount',
+                              style: TextStyle(
+                                color: _liked ? theme.colorScheme.primary : null,
+                                fontWeight: _liked ? FontWeight.w600 : null,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              minimumSize: const Size(0, 36),
+                            ),
+                          ),
+
+                          const SizedBox(width: 4),
+
+                          // Dislike button
+                          TextButton.icon(
+                            onPressed: _isUpdating ? null : _toggleDislike,
+                            icon: Icon(
+                              _disliked
+                                  ? Icons.thumb_down
+                                  : Icons.thumb_down_outlined,
+                              size: 16,
+                              color: _disliked ? theme.colorScheme.error : null,
+                            ),
+                            label: Text(
+                              '$_dislikeCount',
+                              style: TextStyle(
+                                color: _disliked ? theme.colorScheme.error : null,
+                                fontWeight: _disliked ? FontWeight.w600 : null,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              minimumSize: const Size(0, 36),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
   }
 
   String _formatDate(DateTime? date) {

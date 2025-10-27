@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:my_flutter_app/config.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/author.dart';
 import 'package:my_flutter_app/models/book.dart';
@@ -15,6 +20,7 @@ import 'package:my_flutter_app/services/order_service.dart';
 import 'package:my_flutter_app/services/user_service.dart';
 import 'package:my_flutter_app/services/wallet_service.dart';
 import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
+import 'package:universal_html/html.dart' as html;
 
 class UserAdminPage extends StatefulWidget {
   const UserAdminPage({super.key});
@@ -91,7 +97,6 @@ class _UserAdminPageState extends State<UserAdminPage>
       currentRoute: '/admin',
       appBar: AppBar(
         title: Text(t.adminPanel),
-        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             tooltip: t.refresh,
@@ -906,25 +911,31 @@ class _UserAdminViewState extends State<UserAdminView> {
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 800;
                       return SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: SizedBox(
-                            width: constraints.maxWidth,
-                            child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: isNarrow ? 0 : constraints.maxWidth - 32,
                               ),
-                              headingTextStyle:
-                                  Theme.of(context).textTheme.labelLarge,
-                              columnSpacing: 24,
-                              dataRowMinHeight: 68,
-                              dataRowMaxHeight: 120,
-                              columns: _buildColumns(t),
-                              rows: _buildRows(context, t),
+                              child: DataTable(
+                                headingRowColor: WidgetStateProperty.all(
+                                  Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                                ),
+                                headingTextStyle:
+                                    Theme.of(context).textTheme.labelLarge,
+                                columnSpacing: 24,
+                                dataRowMinHeight: 68,
+                                dataRowMaxHeight: 120,
+                                columns: _buildColumns(t),
+                                rows: _buildRows(context, t),
+                              ),
                             ),
                           ),
                         ),
@@ -956,18 +967,27 @@ class _BookAdminViewState extends State<BookAdminView> {
   final Set<int> _deleting = {};
 
   bool _loading = true;
+  late final VoidCallback _ownedListener;
   String? _error;
   String? _statusFilter;
+  int _tableKey = 0; // Force DataTable rebuild
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _ownedListener = () {
+      final bookId = _catalogService.ownedBookUpdates.value;
+      if (!mounted || bookId == null) return;
+      _loadBooks(forceBackend: true);
+    };
+    _catalogService.ownedBookUpdates.addListener(_ownedListener);
     _loadBooks();
   }
 
   @override
   void dispose() {
+    _catalogService.ownedBookUpdates.removeListener(_ownedListener);
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -985,6 +1005,13 @@ class _BookAdminViewState extends State<BookAdminView> {
   }
 
   Future<void> _loadBooks({bool forceBackend = false}) async {
+    debugPrint('🔄 Loading books (forceBackend: $forceBackend)...');
+    
+    if (!mounted) {
+      debugPrint('⚠️ Widget not mounted, skipping load');
+      return;
+    }
+    
     setState(() {
       _loading = true;
       if (forceBackend) {
@@ -997,13 +1024,26 @@ class _BookAdminViewState extends State<BookAdminView> {
         auth: true,
         forceRefresh: forceBackend,
       );
+      debugPrint('📚 Fetched ${books.length} books from service');
+      
+      // Debug: Check book ID 8 PDF status
+      final book8 = books.firstWhere((b) => b.id == 8, orElse: () => books.first);
+      debugPrint('📖 Book ID ${book8.id}: hasPdf=${book8.hasPdf}, filename=${book8.pdfFilename}, size=${book8.pdfFileSize}');
+      
       if (!mounted) return;
       setState(() {
         _allBooks
           ..clear()
           ..addAll(books);
+        _loading = false;
+        _tableKey++; // Force DataTable rebuild
       });
       _applyFilters();
+      
+      // Debug: Check after filter
+      final filteredBook8 = _books.firstWhere((b) => b.id == 8, orElse: () => _books.first);
+      debugPrint('🎯 Applied filters, displaying ${_books.length} books');
+      debugPrint('🔍 Book ID ${filteredBook8.id} in filtered list: hasPdf=${filteredBook8.hasPdf}');
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -1063,12 +1103,31 @@ class _BookAdminViewState extends State<BookAdminView> {
   }
 
   Future<void> _openEditor([Book? book]) async {
-    final result = await showDialog<Map<String, dynamic>>(
+    debugPrint('🎬 Opening editor dialog for book: ${book?.id}');
+    final result = await showDialog<dynamic>(
       context: context,
       barrierDismissible: false,
       builder: (context) => _BookEditorDialog(book: book),
     );
-    if (result == null) return;
+    
+    debugPrint('🔙 Dialog closed with result: $result (type: ${result.runtimeType})');
+    if (result == null) {
+      debugPrint('❌ Result is null, returning');
+      return;
+    }
+
+    // If result is true, it means PDF was uploaded/deleted, refresh books list
+    if (result == true) {
+      debugPrint('📥 PDF upload/delete success, reloading books... (mounted: $mounted)');
+      await _loadBooks(forceBackend: true);
+      debugPrint('✅ Books reloaded, count: ${_allBooks.length}');
+      return;
+    }
+    
+    debugPrint('📝 Result is book data, updating book...');
+
+    // Otherwise, result is Map<String, dynamic> (book data)
+    if (result is! Map<String, dynamic>) return;
 
     try {
       if (book == null) {
@@ -1158,6 +1217,7 @@ class _BookAdminViewState extends State<BookAdminView> {
         DataColumn(label: Text(t.bookColumnCopies)),
         DataColumn(label: Text(t.bookColumnStatus)),
         DataColumn(label: Text(t.bookColumnCategory)),
+        const DataColumn(label: Text('PDF')),
         DataColumn(label: Text(t.bookColumnActions)),
       ];
 
@@ -1205,6 +1265,25 @@ class _BookAdminViewState extends State<BookAdminView> {
           DataCell(Text('${book.availableCopies}')),
           DataCell(Text(_bookStatusLabel(book.status, t))),
           DataCell(Text(book.category?.name ?? t.bookCategoryUnassigned)),
+          DataCell(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  book.hasPdf ? Icons.check_circle : Icons.cancel,
+                  size: 20,
+                  color: book.hasPdf ? Colors.green : Colors.grey,
+                ),
+                if (book.hasPdf) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    book.formattedFileSize,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
           DataCell(
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -1265,6 +1344,7 @@ class _BookAdminViewState extends State<BookAdminView> {
               setState(() => _statusFilter = status);
               _applyFilters();
             },
+            onAddBook: createBook,
           ),
         ),
         Expanded(
@@ -1287,25 +1367,32 @@ class _BookAdminViewState extends State<BookAdminView> {
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 800;
                       return SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: SizedBox(
-                            width: constraints.maxWidth,
-                            child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: isNarrow ? 0 : constraints.maxWidth - 32,
                               ),
-                              headingTextStyle:
-                                  Theme.of(context).textTheme.labelLarge,
-                              columnSpacing: 24,
-                              dataRowMinHeight: 72,
-                              dataRowMaxHeight: 140,
-                              columns: _buildColumns(t),
-                              rows: _buildRows(context, t),
+                              child: DataTable(
+                                key: ValueKey('books_table_$_tableKey'),
+                                headingRowColor: WidgetStateProperty.all(
+                                  Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                                ),
+                                headingTextStyle:
+                                    Theme.of(context).textTheme.labelLarge,
+                                columnSpacing: 24,
+                                dataRowMinHeight: 72,
+                                dataRowMaxHeight: 140,
+                                columns: _buildColumns(t),
+                                rows: _buildRows(context, t),
+                              ),
                             ),
                           ),
                         ),
@@ -1327,6 +1414,7 @@ class _BookFilters extends StatelessWidget {
     required this.onClearSearch,
     required this.onSubmitted,
     required this.onStatusChanged,
+    required this.onAddBook,
   });
 
   final TextEditingController searchController;
@@ -1335,57 +1423,107 @@ class _BookFilters extends StatelessWidget {
   final VoidCallback onClearSearch;
   final ValueChanged<String> onSubmitted;
   final ValueChanged<String?> onStatusChanged;
+  final VoidCallback onAddBook;
 
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
 
-    return Column(
-      children: [
-        TextField(
-          controller: searchController,
-          textInputAction: TextInputAction.search,
-          enabled: !loading,
-          onSubmitted: onSubmitted,
-          decoration: InputDecoration(
-            labelText: t.bookSearchLabel,
-            hintText: t.bookSearchHint,
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: searchController.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: t.clear,
-                    onPressed: onClearSearch,
-                    icon: const Icon(Icons.clear),
-                  ),
+    Widget buildSearchField() {
+      return TextField(
+        controller: searchController,
+        textInputAction: TextInputAction.search,
+        enabled: !loading,
+        onSubmitted: onSubmitted,
+        decoration: InputDecoration(
+          labelText: t.bookSearchLabel,
+          hintText: t.bookSearchHint,
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: t.clear,
+                  onPressed: onClearSearch,
+                  icon: const Icon(Icons.clear),
+                ),
+        ),
+      );
+    }
+
+    Widget buildAddButton({required bool expanded}) {
+      final button = FilledButton.icon(
+        onPressed: loading ? null : onAddBook,
+        icon: const Icon(Icons.add),
+        label: Text(t.bookAdd),
+      );
+      if (expanded) {
+        return SizedBox(
+          width: double.infinity,
+          child: button,
+        );
+      }
+      return button;
+    }
+
+    Widget buildStatusDropdown() {
+      return DropdownButtonFormField<String>(
+        key: ValueKey(selectedStatus),
+        initialValue: selectedStatus,
+        decoration: InputDecoration(labelText: t.bookStatusFilter),
+        items: [
+          DropdownMenuItem(
+            value: _BookAdminViewState._allStatusesValue,
+            child: Text(t.bookStatusAll),
           ),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          key: ValueKey(selectedStatus),
-          initialValue: selectedStatus,
-          decoration: InputDecoration(labelText: t.bookStatusFilter),
-          items: [
-            DropdownMenuItem(
-              value: _BookAdminViewState._allStatusesValue,
-              child: Text(t.bookStatusAll),
+          DropdownMenuItem(
+            value: 'draft',
+            child: Text(t.bookStatusDraft),
+          ),
+          DropdownMenuItem(
+            value: 'published',
+            child: Text(t.bookStatusPublished),
+          ),
+          DropdownMenuItem(
+            value: 'archived',
+            child: Text(t.bookStatusArchived),
+          ),
+        ],
+        onChanged: loading ? null : onStatusChanged,
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 640;
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              buildSearchField(),
+              const SizedBox(height: 12),
+              buildAddButton(expanded: true),
+              const SizedBox(height: 12),
+              buildStatusDropdown(),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: buildSearchField()),
+                const SizedBox(width: 12),
+                buildAddButton(expanded: false),
+              ],
             ),
-            DropdownMenuItem(
-              value: 'draft',
-              child: Text(t.bookStatusDraft),
-            ),
-            DropdownMenuItem(
-              value: 'published',
-              child: Text(t.bookStatusPublished),
-            ),
-            DropdownMenuItem(
-              value: 'archived',
-              child: Text(t.bookStatusArchived),
-            ),
+            const SizedBox(height: 12),
+            buildStatusDropdown(),
           ],
-          onChanged: loading ? null : onStatusChanged,
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -1424,7 +1562,6 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
   late final TextEditingController _isbnController;
   late final TextEditingController _languageController;
   late final TextEditingController _coverUrlController;
-  late final TextEditingController _fileUrlController;
   late final TextEditingController _publishedAtController;
 
   List<Category> _categories = [];
@@ -1437,6 +1574,11 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
   bool _loading = true;
   bool _submitting = false;
   String? _error;
+
+  // PDF management
+  bool _uploadingPdf = false;
+  bool _deletingPdf = false;
+  String? _pdfError;
 
   @override
   void initState() {
@@ -1457,7 +1599,6 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
     _languageController = TextEditingController(text: book?.language ?? '');
     _coverUrlController =
         TextEditingController(text: book?.coverImageUrl ?? '');
-    _fileUrlController = TextEditingController(text: book?.fileUrl ?? '');
     _publishedAt = book?.publishedAt;
     _publishedAtController = TextEditingController(
       text: book?.publishedAt != null
@@ -1515,7 +1656,6 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
     _isbnController.dispose();
     _languageController.dispose();
     _coverUrlController.dispose();
-    _fileUrlController.dispose();
     _publishedAtController.dispose();
     super.dispose();
   }
@@ -1554,6 +1694,215 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
     });
   }
 
+  Future<void> _uploadPdf() async {
+    final book = widget.book;
+    if (book == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot upload PDF for new book. Save the book first.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _uploadingPdf = true;
+      _pdfError = null;
+    });
+
+    try {
+      Uint8List? fileBytes;
+      String fileName = 'document.pdf';
+      int? fileSize;
+
+      // Platform-specific file picking
+      if (kIsWeb) {
+        // Web-specific file picker using HTML input
+        final uploadInput = html.FileUploadInputElement();
+        uploadInput.accept = '.pdf';
+        uploadInput.click();
+
+        await uploadInput.onChange.first;
+        
+        if (uploadInput.files!.isEmpty) {
+          setState(() => _uploadingPdf = false);
+          return;
+        }
+
+        final file = uploadInput.files!.first;
+        fileName = file.name;
+        fileSize = file.size;
+
+        // Read file as bytes
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+        fileBytes = reader.result as Uint8List;
+      } else {
+        // Mobile/Desktop file picker
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+          allowMultiple: false,
+          withData: true,
+        );
+
+        if (result == null || result.files.isEmpty) {
+          setState(() => _uploadingPdf = false);
+          return;
+        }
+
+        final file = result.files.first;
+        fileName = file.name;
+        fileSize = file.size;
+
+        if (file.bytes != null) {
+          fileBytes = file.bytes;
+        } else if (file.path != null) {
+          // Read file from path (for desktop)
+          final fileData = await http.MultipartFile.fromPath('temp', file.path!);
+          fileBytes = await fileData.finalize().toBytes();
+        }
+      }
+
+      // Validate file
+      if (fileBytes == null) {
+        if (!mounted) return;
+        setState(() {
+          _uploadingPdf = false;
+          _pdfError = 'Could not read file';
+        });
+        return;
+      }
+
+      if (fileSize > 50 * 1024 * 1024) {
+        if (!mounted) return;
+        setState(() {
+          _uploadingPdf = false;
+          _pdfError = 'File too large. Maximum size is 50MB';
+        });
+        return;
+      }
+
+      final token = await AuthService.instance.getToken();
+      if (token == null || token.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _uploadingPdf = false;
+          _pdfError = 'Not authenticated';
+        });
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.apiBaseUrl}/api/books/${book.id}/pdf');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      // Add file to request
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'pdf',
+          fileBytes,
+          filename: fileName,
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint('✅ PDF upload success, closing dialog with result=true');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF uploaded successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop(true); // Refresh parent
+      } else {
+        setState(() {
+          _uploadingPdf = false;
+          _pdfError = 'Upload failed (${response.statusCode}): ${response.body}';
+        });
+      }
+    } catch (e, stackTrace) {
+      debugPrint('PDF upload error: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (!mounted) return;
+      setState(() {
+        _uploadingPdf = false;
+        _pdfError = 'Upload error: ${e.toString()}';
+      });
+    }
+  }
+
+  Future<void> _deletePdf() async {
+    final book = widget.book;
+    if (book == null || !book.hasPdf) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete PDF'),
+        content: const Text('Are you sure you want to delete this PDF file?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      setState(() {
+        _deletingPdf = true;
+        _pdfError = null;
+      });
+
+      final token = await AuthService.instance.getToken();
+      final uri = Uri.parse('${AppConfig.apiBaseUrl}/api/books/${book.id}/pdf');
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF deleted successfully')),
+        );
+        Navigator.of(context).pop(true); // Refresh parent
+      } else {
+        if (!mounted) return;
+        setState(() => _pdfError = 'Delete failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _pdfError = 'Delete error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _deletingPdf = false);
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     final form = _formKey.currentState;
@@ -1574,7 +1923,6 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
       final isbn = _isbnController.text.trim();
       final language = _languageController.text.trim();
       final coverUrl = _coverUrlController.text.trim();
-      final fileUrl = _fileUrlController.text.trim();
 
       final payload = <String, dynamic>{
         'title': title,
@@ -1593,7 +1941,6 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
       if (isbn.isNotEmpty) payload['isbn'] = isbn;
       if (language.isNotEmpty) payload['language'] = language;
       if (coverUrl.isNotEmpty) payload['cover_image_url'] = coverUrl;
-      if (fileUrl.isNotEmpty) payload['file_url'] = fileUrl;
       if (_publishedAt != null) {
         payload['published_at'] =
             DateFormat('yyyy-MM-dd').format(_publishedAt!.toLocal());
@@ -1832,13 +2179,6 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
-                            controller: _fileUrlController,
-                            decoration: InputDecoration(
-                              labelText: t.bookFileUrlLabel,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
                             controller: _publishedAtController,
                             readOnly: true,
                             decoration: InputDecoration(
@@ -1864,6 +2204,95 @@ class _BookEditorDialogState extends State<_BookEditorDialog> {
                             ),
                             onTap: _pickPublishedDate,
                           ),
+                          const SizedBox(height: 24),
+                          const Divider(),
+                          const SizedBox(height: 16),
+                          // PDF Management Section
+                          Text(
+                            'PDF File Management',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 12),
+                          if (widget.book == null)
+                            Text(
+                              'Save the book first before uploading PDF',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).hintColor,
+                              ),
+                            )
+                          else ...[
+                            if (widget.book!.hasPdf) ...[
+                              Row(
+                                children: [
+                                  const Icon(Icons.check_circle, color: Colors.green),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('PDF uploaded: ${widget.book!.pdfFilename}'),
+                                        Text(
+                                          'Size: ${widget.book!.formattedFileSize}',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: _deletingPdf ? null : _deletePdf,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                ),
+                                icon: _deletingPdf
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.delete),
+                                label: Text(_deletingPdf ? 'Deleting...' : 'Delete PDF'),
+                              ),
+                            ] else ...[
+                              Row(
+                                children: [
+                                  const Icon(Icons.cancel, color: Colors.grey),
+                                  const SizedBox(width: 8),
+                                  const Text('No PDF uploaded'),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: _uploadingPdf ? null : _uploadPdf,
+                                icon: _uploadingPdf
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.upload_file),
+                                label: Text(_uploadingPdf ? 'Uploading...' : 'Upload PDF'),
+                              ),
+                            ],
+                            if (_pdfError != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                _pdfError!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
                         ],
                       ),
                     ),
@@ -2330,25 +2759,31 @@ class _AuthorAdminViewState extends State<AuthorAdminView> {
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 800;
                       return SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: SizedBox(
-                            width: constraints.maxWidth,
-                            child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: isNarrow ? 0 : constraints.maxWidth - 32,
                               ),
-                              headingTextStyle:
-                                  Theme.of(context).textTheme.labelLarge,
-                              columnSpacing: 24,
-                              dataRowMinHeight: 68,
-                              dataRowMaxHeight: 120,
-                              columns: _buildColumns(t),
-                              rows: _buildRows(context, t),
+                              child: DataTable(
+                                headingRowColor: WidgetStateProperty.all(
+                                  Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                                ),
+                                headingTextStyle:
+                                    Theme.of(context).textTheme.labelLarge,
+                                columnSpacing: 24,
+                                dataRowMinHeight: 68,
+                                dataRowMaxHeight: 120,
+                                columns: _buildColumns(t),
+                                rows: _buildRows(context, t),
+                              ),
                             ),
                           ),
                         ),
@@ -2496,3 +2931,4 @@ class _AuthorEditorDialogState extends State<_AuthorEditorDialog> {
     );
   }
 }
+

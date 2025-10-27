@@ -77,6 +77,44 @@ class ResponsiveNavigationWrapper extends StatelessWidget {
   }
 }
 
+// Helper function to wrap AppBar and disable automatic leading icon
+PreferredSizeWidget _wrapAppBar(PreferredSizeWidget appBar) {
+  if (appBar is AppBar) {
+    return AppBar(
+      key: appBar.key,
+      leading: appBar.leading,
+      automaticallyImplyLeading: false, // Disable hamburger on desktop/tablet
+      title: appBar.title,
+      actions: appBar.actions,
+      flexibleSpace: appBar.flexibleSpace,
+      bottom: appBar.bottom,
+      elevation: appBar.elevation,
+      scrolledUnderElevation: appBar.scrolledUnderElevation,
+      shadowColor: appBar.shadowColor,
+      surfaceTintColor: appBar.surfaceTintColor,
+      shape: appBar.shape,
+      backgroundColor: appBar.backgroundColor,
+      foregroundColor: appBar.foregroundColor,
+      iconTheme: appBar.iconTheme,
+      actionsIconTheme: appBar.actionsIconTheme,
+      primary: appBar.primary,
+      centerTitle: appBar.centerTitle,
+      excludeHeaderSemantics: appBar.excludeHeaderSemantics,
+      titleSpacing: appBar.titleSpacing,
+      toolbarOpacity: appBar.toolbarOpacity,
+      bottomOpacity: appBar.bottomOpacity,
+      toolbarHeight: appBar.toolbarHeight,
+      leadingWidth: appBar.leadingWidth,
+      toolbarTextStyle: appBar.toolbarTextStyle,
+      titleTextStyle: appBar.titleTextStyle,
+      systemOverlayStyle: appBar.systemOverlayStyle,
+      forceMaterialTransparency: appBar.forceMaterialTransparency,
+      clipBehavior: appBar.clipBehavior,
+    );
+  }
+  return appBar;
+}
+
 // ==================== Desktop Layout (≥ 840dp) ====================
 class _DesktopLayout extends StatelessWidget {
   const _DesktopLayout({
@@ -112,7 +150,7 @@ class _DesktopLayout extends StatelessWidget {
           const VerticalDivider(width: 1, thickness: 1),
           Expanded(
             child: Scaffold(
-              appBar: appBar,
+              appBar: appBar != null ? _wrapAppBar(appBar!) : null,
               body: body,
               floatingActionButton: floatingActionButton,
               floatingActionButtonLocation: floatingActionButtonLocation,
@@ -160,7 +198,7 @@ class _TabletLayout extends StatelessWidget {
           const VerticalDivider(width: 1, thickness: 1),
           Expanded(
             child: Scaffold(
-              appBar: appBar,
+              appBar: appBar != null ? _wrapAppBar(appBar!) : null,
               body: body,
               floatingActionButton: floatingActionButton,
               floatingActionButtonLocation: floatingActionButtonLocation,

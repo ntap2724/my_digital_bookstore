@@ -484,7 +484,6 @@ class _WalletPageState extends State<WalletPage> {
       currentRoute: '/wallet',
       appBar: AppBar(
         title: Text(t.wallet),
-        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             tooltip: t.refresh,
