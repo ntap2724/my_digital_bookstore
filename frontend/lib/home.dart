@@ -30,6 +30,7 @@ class _HomePageState extends State<HomePage> {
 
   final Set<int> _addingToCart = <int>{};
   final Set<int> _purchasingBooks = <int>{};
+  VoidCallback? _catalogCacheListener;
 
   String? _displayName;
   String? _email;
@@ -61,6 +62,11 @@ class _HomePageState extends State<HomePage> {
     _cartService.ensureLoaded();
     _cartService.addListener(_handleCartChanged);
     _searchController.addListener(_onSearchChanged);
+    _catalogCacheListener = () {
+      if (!mounted) return;
+      _loadBooks(showSpinner: false);
+    };
+    _catalogService.addCacheListener(_catalogCacheListener!);
     _loadProfile();
     _loadBooks();
     _loadCategories();
@@ -74,6 +80,9 @@ class _HomePageState extends State<HomePage> {
     _searchFocusNode.dispose();
     _searchDebounce?.cancel();
     _cartService.removeListener(_handleCartChanged);
+    if (_catalogCacheListener != null) {
+      _catalogService.removeCacheListener(_catalogCacheListener!);
+    }
     super.dispose();
   }
 
@@ -211,7 +220,9 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadBooks({bool showSpinner = true}) async {
     if (mounted) {
       setState(() {
-        _loadingBooks = true;
+        if (showSpinner) {
+          _loadingBooks = true;
+        }
         _bookError = null;
       });
     }

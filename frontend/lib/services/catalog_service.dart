@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, ValueNotifier, VoidCallback;
 import 'package:flutter/material.dart';
 import 'package:my_flutter_app/models/author.dart';
 import 'package:my_flutter_app/models/book.dart';
@@ -42,11 +43,21 @@ class CatalogService {
   final Map<int, DateTime?> _userReviewCacheTimestamp = {};
 
   final ValueNotifier<int?> _ownedBookNotifier = ValueNotifier<int?>(null);
+  final ValueNotifier<int> _cacheUpdateVersion = ValueNotifier<int>(0);
 
   ValueListenable<int?> get ownedBookUpdates => _ownedBookNotifier;
+  ValueListenable<int> get cacheUpdates => _cacheUpdateVersion;
 
-  // Cache refresh interval (1 minute)
-  static const Duration _cacheRefreshInterval = Duration(minutes: 1);
+  void addCacheListener(VoidCallback listener) {
+    _cacheUpdateVersion.addListener(listener);
+  }
+
+  void removeCacheListener(VoidCallback listener) {
+    _cacheUpdateVersion.removeListener(listener);
+  }
+
+  // Cache refresh interval (5 minutes for better performance)
+  static const Duration _cacheRefreshInterval = Duration(minutes: 5);
 
   // ==================== SMART CACHING METHODS ====================
 
@@ -76,31 +87,23 @@ class CatalogService {
     }
   }
 
-  // ==================== EXISTING METHODS ====================
+  // ==================== HELPER METHODS FOR STALE-WHILE-REVALIDATE ====================
 
-  Future<List<Category>> fetchCategories({
+  void _scheduleCategoryRefresh({
+    required String key,
     String? search,
-    bool auth = false,
-    bool forceRefresh = false,
-  }) async {
-    final key = _cacheKey('categories', {
-      'search': search?.trim().toLowerCase(),
-      'auth': auth,
-    });
+    required bool auth,
+  }) {
+    if (_categoryPending[key] != null) return;
+    _fetchCategoriesFromApi(key: key, search: search, auth: auth)
+        .catchError((_) {});
+  }
 
-    if (!forceRefresh) {
-      final cached = _categoryCache[key];
-      if (cached != null && !_shouldRefreshCache('categories', key)) {
-        return List<Category>.unmodifiable(cached);
-      }
-      final pending = _categoryPending[key];
-      if (pending != null) return pending;
-    } else {
-      _categoryCache.remove(key);
-      _categoryPending.remove(key);
-      _categoryCacheTimestamp.remove(key);
-    }
-
+  Future<List<Category>> _fetchCategoriesFromApi({
+    required String key,
+    String? search,
+    required bool auth,
+  }) {
     final future = _client
         .getJson(
           '/api/categories',
@@ -114,19 +117,368 @@ class CatalogService {
                     .whereType<Map<String, dynamic>>()
                     .map(Category.fromJson)
                     .toList(growable: false)
-              : const <Category>[];
+              : <Category>[];
           _categoryCache[key] = list;
           _categoryCacheTimestamp[key] = DateTime.now();
-          _categoryPending.remove(key);
+          _notifyCacheUpdated();
           return List<Category>.unmodifiable(list);
-        })
-        .catchError((error) {
-          _categoryPending.remove(key);
-          throw error;
         });
 
     _categoryPending[key] = future;
-    return future;
+    return future.whenComplete(() {
+      if (identical(_categoryPending[key], future)) {
+        _categoryPending.remove(key);
+      }
+    });
+  }
+
+  void _scheduleAuthorRefresh({
+    required String key,
+    String? search,
+    required bool auth,
+  }) {
+    if (_authorPending[key] != null) return;
+    _fetchAuthorsFromApi(key: key, search: search, auth: auth)
+        .catchError((_) {});
+  }
+
+  Future<List<Author>> _fetchAuthorsFromApi({
+    required String key,
+    String? search,
+    required bool auth,
+  }) {
+    final future = _client
+        .getJson(
+          '/api/authors',
+          query: {if (search != null && search.isNotEmpty) 'search': search},
+          auth: auth,
+        )
+        .then((json) {
+          final data = json['data'];
+          final list = data is List
+              ? data
+                    .whereType<Map<String, dynamic>>()
+                    .map(Author.fromJson)
+                    .toList(growable: false)
+              : <Author>[];
+          _authorCache[key] = list;
+          _authorCacheTimestamp[key] = DateTime.now();
+          _notifyCacheUpdated();
+          return List<Author>.unmodifiable(list);
+        });
+
+    _authorPending[key] = future;
+    return future.whenComplete(() {
+      if (identical(_authorPending[key], future)) {
+        _authorPending.remove(key);
+      }
+    });
+  }
+
+  void _notifyCacheUpdated() {
+    _cacheUpdateVersion.value++;
+  }
+
+  void _scheduleBookRefresh({
+    required String key,
+    required String ownerKey,
+    required int page,
+    required int perPage,
+    String? search,
+    int? categoryId,
+    int? authorId,
+    String? status,
+    required bool auth,
+  }) {
+    if (_bookPending[key] != null) return;
+    _fetchBooksFromApi(
+      key: key,
+      ownerKey: ownerKey,
+      page: page,
+      perPage: perPage,
+      search: search,
+      categoryId: categoryId,
+      authorId: authorId,
+      status: status,
+      auth: auth,
+    ).catchError((_) {});
+  }
+
+  Future<PaginatedResult<Book>> _fetchBooksFromApi({
+    required String key,
+    required String ownerKey,
+    required int page,
+    required int perPage,
+    String? search,
+    int? categoryId,
+    int? authorId,
+    String? status,
+    required bool auth,
+  }) {
+    final future = _client
+        .getJson(
+          '/api/books',
+          query: {
+            'page': page,
+            'per_page': perPage,
+            if (search != null && search.isNotEmpty) 'search': search,
+            if (categoryId != null) 'category_id': categoryId,
+            if (authorId != null) 'author_id': authorId,
+            if (status != null && status.isNotEmpty) 'status': status,
+          },
+          auth: auth,
+        )
+        .then((json) {
+          final result = PaginatedResult.fromJson(
+            json,
+            (item) => Book.fromJson(item),
+          );
+          final shouldStore = !auth || _currentOwnerKey == ownerKey;
+          if (shouldStore) {
+            _bookCache[key] = result;
+            _bookCacheTimestamp[key] = DateTime.now();
+            _notifyCacheUpdated();
+          }
+          return result;
+        });
+
+    _bookPending[key] = future;
+    return future.whenComplete(() {
+      if (identical(_bookPending[key], future)) {
+        _bookPending.remove(key);
+      }
+    });
+  }
+
+  void _scheduleAllBooksRefresh({
+    required String ownerKey,
+    required bool auth,
+  }) {
+    if (_allBooksPending != null) return;
+    _fetchAllBooksFromApi(ownerKey: ownerKey, auth: auth).catchError((_) {});
+  }
+
+  Future<List<Book>> _fetchAllBooksFromApi({
+    required String ownerKey,
+    required bool auth,
+  }) {
+    final future = _fetchAllBooks(auth: auth).then((books) {
+      if (_allBooksCacheKey == ownerKey) {
+        _allBooksCache = books;
+        _allBooksCacheTimestamp = DateTime.now();
+        _notifyCacheUpdated();
+      }
+      return List<Book>.unmodifiable(books);
+    });
+
+    if (_allBooksCacheKey == ownerKey) {
+      _allBooksPending = future;
+    }
+    return future.whenComplete(() {
+      if (_allBooksCacheKey == ownerKey &&
+          identical(_allBooksPending, future)) {
+        _allBooksPending = null;
+      }
+    });
+  }
+
+  void _scheduleReviewsRefresh({required int bookId, required bool auth}) {
+    if (_reviewsPending[bookId] != null) return;
+    _fetchReviewsFromApi(bookId: bookId, auth: auth).catchError((_) {});
+  }
+
+  Future<Map<String, dynamic>> _fetchReviewsFromApi({
+    required int bookId,
+    required bool auth,
+  }) {
+    final future = _client
+        .getJson('/api/books/$bookId/reviews', auth: auth)
+        .then((json) {
+          final reviewsData = json['reviews'];
+          final reviews = reviewsData is List
+              ? reviewsData
+                    .whereType<Map<String, dynamic>>()
+                    .map(BookReview.fromJson)
+                    .toList(growable: false)
+              : <BookReview>[];
+
+          double averageRating = 0.0;
+          int totalReviews = 0;
+          Map<int, int> ratingBreakdown = {};
+
+          final meta = json['meta'];
+          if (meta is Map<String, dynamic>) {
+            averageRating = (meta['average_rating'] as num?)?.toDouble() ?? 0.0;
+            totalReviews = (meta['total_reviews'] as num?)?.toInt() ?? 0;
+
+            final breakdown = meta['rating_breakdown'];
+            if (breakdown is Map) {
+              breakdown.forEach((key, value) {
+                final rating = int.tryParse(key.toString());
+                final count = value is int
+                    ? value
+                    : (value as num?)?.toInt() ?? 0;
+                if (rating != null) {
+                  ratingBreakdown[rating] = count;
+                }
+              });
+            }
+          } else {
+            averageRating = (json['average_rating'] as num?)?.toDouble() ?? 0.0;
+            totalReviews = (json['total_reviews'] as num?)?.toInt() ?? 0;
+
+            final breakdown = json['rating_breakdown'];
+            if (breakdown is Map) {
+              breakdown.forEach((key, value) {
+                final rating = int.tryParse(key.toString());
+                final count = value is int
+                    ? value
+                    : (value as num?)?.toInt() ?? 0;
+                if (rating != null) {
+                  ratingBreakdown[rating] = count;
+                }
+              });
+            }
+          }
+
+          if (totalReviews == 0 && reviews.isNotEmpty) {
+            totalReviews = reviews.length;
+            final sum = reviews.fold<int>(0, (sum, r) => sum + r.rating);
+            averageRating = sum / reviews.length;
+
+            for (var review in reviews) {
+              ratingBreakdown[review.rating] =
+                  (ratingBreakdown[review.rating] ?? 0) + 1;
+            }
+          }
+
+          final result = {
+            'reviews': reviews,
+            'average_rating': averageRating,
+            'total_reviews': totalReviews,
+            'rating_breakdown': ratingBreakdown,
+          };
+
+          _reviewsCache[bookId] = result;
+          _reviewsCacheTimestamp[bookId] = DateTime.now();
+          _notifyCacheUpdated();
+          return result;
+        });
+
+    _reviewsPending[bookId] = future;
+    return future.whenComplete(() {
+      if (identical(_reviewsPending[bookId], future)) {
+        _reviewsPending.remove(bookId);
+      }
+    });
+  }
+
+  void _scheduleUserReviewRefresh(int bookId) {
+    if (_userReviewPending[bookId] != null) return;
+    _fetchUserReviewFromApi(bookId: bookId).catchError((_) {});
+  }
+
+  Future<BookReview?> _fetchUserReviewFromApi({required int bookId}) {
+    Future<BookReview?> loader() async {
+      try {
+        final json = await _client.getJson(
+          '/api/books/$bookId/my-review',
+          auth: true,
+        );
+
+        final payload = json['data'] ?? json['review'];
+        if (payload == null) {
+          _userReviewCache[bookId] = null;
+          _userReviewCacheTimestamp[bookId] = DateTime.now();
+          _notifyCacheUpdated();
+          return null;
+        }
+
+        Map<String, dynamic>? reviewJson;
+        if (payload is Map<String, dynamic>) {
+          reviewJson = payload;
+        } else if (payload is Map) {
+          reviewJson = Map<String, dynamic>.from(payload);
+        }
+
+        if (reviewJson == null) {
+          _userReviewCache.remove(bookId);
+          _userReviewCacheTimestamp.remove(bookId);
+          return null;
+        }
+
+        final review = BookReview.fromJson(reviewJson);
+        _userReviewCache[bookId] = review;
+        _userReviewCacheTimestamp[bookId] = DateTime.now();
+        _notifyCacheUpdated();
+        return review;
+      } on ApiException catch (error) {
+        final message = error.message.toLowerCase();
+        if (error.statusCode == 404 ||
+            message.contains('not found') ||
+            message.contains('could not be found')) {
+          _userReviewCache[bookId] = null;
+          _userReviewCacheTimestamp[bookId] = DateTime.now();
+          _notifyCacheUpdated();
+          return null;
+        }
+        _userReviewCache.remove(bookId);
+        _userReviewCacheTimestamp.remove(bookId);
+        return null;
+      } catch (_) {
+        _userReviewCache.remove(bookId);
+        _userReviewCacheTimestamp.remove(bookId);
+        return null;
+      }
+    }
+
+    final future = loader();
+    _userReviewPending[bookId] = future;
+    return future.whenComplete(() {
+      if (identical(_userReviewPending[bookId], future)) {
+        _userReviewPending.remove(bookId);
+      }
+    });
+  }
+
+  // ==================== EXISTING METHODS ====================
+
+  Future<List<Category>> fetchCategories({
+    String? search,
+    bool auth = false,
+    bool forceRefresh = false,
+  }) async {
+    final key = _cacheKey('categories', {
+      'search': search?.trim().toLowerCase(),
+      'auth': auth,
+    });
+
+    if (forceRefresh) {
+      _categoryCache.remove(key);
+      _categoryPending.remove(key);
+      _categoryCacheTimestamp.remove(key);
+    } else {
+      final cached = _categoryCache[key];
+      if (cached != null) {
+        final stale = _shouldRefreshCache('categories', key);
+        if (stale) {
+          _scheduleCategoryRefresh(
+            key: key,
+            search: search,
+            auth: auth,
+          );
+        }
+        return Future.value(List<Category>.unmodifiable(cached));
+      }
+      final pending = _categoryPending[key];
+      if (pending != null) return pending;
+    }
+
+    return _fetchCategoriesFromApi(
+      key: key,
+      search: search,
+      auth: auth,
+    );
   }
 
   Future<Category> getCategory(int id, {bool auth = false}) async {
@@ -149,45 +501,32 @@ class CatalogService {
       'auth': auth,
     });
 
-    if (!forceRefresh) {
-      final cached = _authorCache[key];
-      if (cached != null && !_shouldRefreshCache('authors', key)) {
-        return List<Author>.unmodifiable(cached);
-      }
-      final pending = _authorPending[key];
-      if (pending != null) return pending;
-    } else {
+    if (forceRefresh) {
       _authorCache.remove(key);
       _authorPending.remove(key);
       _authorCacheTimestamp.remove(key);
+    } else {
+      final cached = _authorCache[key];
+      if (cached != null) {
+        final stale = _shouldRefreshCache('authors', key);
+        if (stale) {
+          _scheduleAuthorRefresh(
+            key: key,
+            search: search,
+            auth: auth,
+          );
+        }
+        return Future.value(List<Author>.unmodifiable(cached));
+      }
+      final pending = _authorPending[key];
+      if (pending != null) return pending;
     }
 
-    final future = _client
-        .getJson(
-          '/api/authors',
-          query: {if (search != null && search.isNotEmpty) 'search': search},
-          auth: auth,
-        )
-        .then((json) {
-          final data = json['data'];
-          final list = data is List
-              ? data
-                    .whereType<Map<String, dynamic>>()
-                    .map(Author.fromJson)
-                    .toList(growable: false)
-              : const <Author>[];
-          _authorCache[key] = list;
-          _authorCacheTimestamp[key] = DateTime.now();
-          _authorPending.remove(key);
-          return List<Author>.unmodifiable(list);
-        })
-        .catchError((error) {
-          _authorPending.remove(key);
-          throw error;
-        });
-
-    _authorPending[key] = future;
-    return future;
+    return _fetchAuthorsFromApi(
+      key: key,
+      search: search,
+      auth: auth,
+    );
   }
 
   Future<Author> getAuthor(int id, {bool auth = false}) async {
@@ -217,46 +556,44 @@ class CatalogService {
       'owner': ownerKey,
     });
 
-    if (!forceRefresh) {
-      final cached = _bookCache[key];
-      if (cached != null) return cached;
-      final pending = _bookPending[key];
-      if (pending != null) return pending;
-    } else {
+    if (forceRefresh) {
       _bookCache.remove(key);
       _bookPending.remove(key);
+      _bookCacheTimestamp.remove(key);
+    } else {
+      final cached = _bookCache[key];
+      if (cached != null) {
+        final stale = _shouldRefreshCache('books', key);
+        if (stale) {
+          _scheduleBookRefresh(
+            key: key,
+            ownerKey: ownerKey,
+            page: page,
+            perPage: perPage,
+            search: search,
+            categoryId: categoryId,
+            authorId: authorId,
+            status: status,
+            auth: auth,
+          );
+        }
+        return Future.value(cached);
+      }
+      final pending = _bookPending[key];
+      if (pending != null) return pending;
     }
 
-    final future = _client
-        .getJson(
-          '/api/books',
-          query: {
-            'page': page,
-            'per_page': perPage,
-            if (search != null && search.isNotEmpty) 'search': search,
-            if (categoryId != null) 'category_id': categoryId,
-            if (authorId != null) 'author_id': authorId,
-            if (status != null && status.isNotEmpty) 'status': status,
-          },
-          auth: auth,
-        )
-        .then((json) {
-          final result = PaginatedResult.fromJson(
-            json,
-            (item) => Book.fromJson(item),
-          );
-          _bookCache[key] = result;
-          _bookCacheTimestamp[key] = DateTime.now();
-          _bookPending.remove(key);
-          return result;
-        })
-        .catchError((error) {
-          _bookPending.remove(key);
-          throw error;
-        });
-
-    _bookPending[key] = future;
-    return future;
+    return _fetchBooksFromApi(
+      key: key,
+      ownerKey: ownerKey,
+      page: page,
+      perPage: perPage,
+      search: search,
+      categoryId: categoryId,
+      authorId: authorId,
+      status: status,
+      auth: auth,
+    );
   }
 
   Future<List<Book>> getAllBooks({
@@ -269,38 +606,30 @@ class CatalogService {
       _allBooksCache = null;
       _allBooksPending = null;
       _allBooksCacheKey = ownerKey;
+      _allBooksCacheTimestamp = null;
     }
 
-    if (!forceRefresh) {
-      final cached = _allBooksCache;
-      if (cached != null) return List<Book>.unmodifiable(cached);
-      final pending = _allBooksPending;
-      if (pending != null) return pending;
-    } else {
+    if (forceRefresh) {
       _allBooksCache = null;
       _allBooksPending = null;
+      _allBooksCacheTimestamp = null;
+    } else {
+      final cached = _allBooksCache;
+      if (cached != null) {
+        final stale = _isCacheStale(_allBooksCacheTimestamp);
+        if (stale) {
+          _scheduleAllBooksRefresh(ownerKey: ownerKey, auth: auth);
+        }
+        return Future.value(List<Book>.unmodifiable(cached));
+      }
+      final pending = _allBooksPending;
+      if (pending != null) return pending;
     }
 
-    final future = _fetchAllBooks(auth: auth)
-        .then((books) {
-          if (_allBooksCacheKey == ownerKey) {
-            _allBooksCache = books;
-            _allBooksCacheTimestamp = DateTime.now();
-            _allBooksPending = null;
-          }
-          return List<Book>.unmodifiable(books);
-        })
-        .catchError((error) {
-          if (_allBooksCacheKey == ownerKey) {
-            _allBooksPending = null;
-          }
-          throw error;
-        });
-
-    if (_allBooksCacheKey == ownerKey) {
-      _allBooksPending = future;
-    }
-    return future;
+    return _fetchAllBooksFromApi(
+      ownerKey: ownerKey,
+      auth: auth,
+    );
   }
 
   Future<Book> getBook(int id, {bool auth = false}) async {
@@ -352,197 +681,53 @@ class CatalogService {
     bool auth = true,
   }) async {
     await _prepareOwnerKey(auth: auth);
+
     if (forceRefresh) {
       _reviewsCache.remove(bookId);
       _reviewsPending.remove(bookId);
-    }
-
-    if (!forceRefresh) {
+      _reviewsCacheTimestamp.remove(bookId);
+    } else {
       final cached = _reviewsCache[bookId];
-      if (cached != null) return cached;
+      if (cached != null) {
+        final stale = _shouldRefreshCache('reviews', bookId.toString());
+        if (stale) {
+          _scheduleReviewsRefresh(bookId: bookId, auth: auth);
+        }
+        return Future.value(cached);
+      }
       final pending = _reviewsPending[bookId];
       if (pending != null) return pending;
     }
 
-    final future = _client
-        .getJson('/api/books/$bookId/reviews', auth: auth)
-        .then((json) {
-          debugPrint('📦 Raw API Response:');
-          debugPrint('  - Full JSON keys: ${json.keys.join(', ')}');
-
-          final reviewsData = json['reviews'];
-          final reviews = reviewsData is List
-              ? reviewsData
-                    .whereType<Map<String, dynamic>>()
-                    .map(BookReview.fromJson)
-                    .toList(growable: false)
-              : const <BookReview>[];
-
-          debugPrint('📝 Parsed ${reviews.length} reviews');
-
-          double averageRating = 0.0;
-          int totalReviews = 0;
-          Map<int, int> ratingBreakdown = {}; // 👈 THÊM
-
-          // Parse từ meta
-          final meta = json['meta'];
-          if (meta is Map<String, dynamic>) {
-            averageRating = (meta['average_rating'] as num?)?.toDouble() ?? 0.0;
-            totalReviews = (meta['total_reviews'] as num?)?.toInt() ?? 0;
-
-            // ✅ Parse rating breakdown
-            final breakdown = meta['rating_breakdown'];
-            if (breakdown is Map) {
-              breakdown.forEach((key, value) {
-                final rating = int.tryParse(key.toString());
-                final count = value is int
-                    ? value
-                    : (value as num?)?.toInt() ?? 0;
-                if (rating != null) {
-                  ratingBreakdown[rating] = count;
-                }
-              });
-              debugPrint('✅ Rating breakdown: $ratingBreakdown');
-            }
-          } else {
-            // Fallback: parse from root level (new API format)
-            averageRating = (json['average_rating'] as num?)?.toDouble() ?? 0.0;
-            totalReviews = (json['total_reviews'] as num?)?.toInt() ?? 0;
-
-            // ✅ Parse rating breakdown from root level
-            final breakdown = json['rating_breakdown'];
-            if (breakdown is Map) {
-              breakdown.forEach((key, value) {
-                final rating = int.tryParse(key.toString());
-                final count = value is int
-                    ? value
-                    : (value as num?)?.toInt() ?? 0;
-                if (rating != null) {
-                  ratingBreakdown[rating] = count;
-                }
-              });
-            }
-          }
-
-          // Calculate from reviews if still empty
-          if (totalReviews == 0 && reviews.isNotEmpty) {
-            totalReviews = reviews.length;
-            final sum = reviews.fold<int>(0, (sum, r) => sum + r.rating);
-            averageRating = sum / reviews.length;
-
-            // ✅ Calculate breakdown from reviews
-            for (var review in reviews) {
-              ratingBreakdown[review.rating] =
-                  (ratingBreakdown[review.rating] ?? 0) + 1;
-            }
-            debugPrint(
-              '✅ Calculated from reviews: avg=$averageRating, breakdown=$ratingBreakdown',
-            );
-          }
-
-          final result = {
-            'reviews': reviews,
-            'average_rating': averageRating,
-            'total_reviews': totalReviews,
-            'rating_breakdown': ratingBreakdown, // 👈 THÊM
-          };
-
-          _reviewsCache[bookId] = result;
-          _reviewsCacheTimestamp[bookId] = DateTime.now();
-          _reviewsPending.remove(bookId);
-          return result;
-        })
-        .catchError((error) {
-          debugPrint('❌ Error in getBookReviews: $error');
-          _reviewsPending.remove(bookId);
-          throw error;
-        });
-
-    _reviewsPending[bookId] = future;
-    return future;
+    return _fetchReviewsFromApi(
+      bookId: bookId,
+      auth: auth,
+    );
   }
 
-  // ✅ FIXED: getUserReview with cache
   Future<BookReview?> getUserReview(
     int bookId, {
     bool forceRefresh = false,
   }) async {
     await _prepareOwnerKey(auth: true);
+
     if (forceRefresh) {
       _userReviewCache.remove(bookId);
       _userReviewPending.remove(bookId);
-    }
-
-    if (!forceRefresh) {
+      _userReviewCacheTimestamp.remove(bookId);
+    } else {
       if (_userReviewCache.containsKey(bookId)) {
-        return _userReviewCache[bookId];
+        final stale = _shouldRefreshCache('userReview', bookId.toString());
+        if (stale) {
+          _scheduleUserReviewRefresh(bookId);
+        }
+        return Future.value(_userReviewCache[bookId]);
       }
       final pending = _userReviewPending[bookId];
       if (pending != null) return pending;
     }
 
-    // ✅ Tạo async function riêng với try-catch
-    Future<BookReview?> fetchUserReview() async {
-      try {
-        debugPrint('Fetching user review...');
-        final json = await _client.getJson(
-          '/api/books/$bookId/my-review',
-          auth: true,
-        );
-
-        debugPrint('User review response received');
-        final payload = json['data'] ?? json['review'];
-        if (payload == null) {
-          debugPrint('User review payload is null');
-          _userReviewCache[bookId] = null;
-          _userReviewCacheTimestamp[bookId] = DateTime.now();
-          _userReviewPending.remove(bookId);
-          return null;
-        }
-
-        Map<String, dynamic>? reviewJson;
-        if (payload is Map<String, dynamic>) {
-          reviewJson = payload;
-        } else if (payload is Map) {
-          reviewJson = Map<String, dynamic>.from(payload);
-        }
-
-        if (reviewJson == null) {
-          debugPrint('Unexpected user review payload: $payload');
-          _userReviewCache[bookId] = null;
-          _userReviewCacheTimestamp[bookId] = DateTime.now();
-          _userReviewPending.remove(bookId);
-          return null;
-        }
-
-        final review = BookReview.fromJson(reviewJson);
-        _userReviewCache[bookId] = review;
-        _userReviewCacheTimestamp[bookId] = DateTime.now();
-        _userReviewPending.remove(bookId);
-        return review;
-      } catch (error) {
-        debugPrint('Error fetching user review: $error');
-        _userReviewCache[bookId] = null;
-        _userReviewCacheTimestamp.remove(bookId);
-        _userReviewPending.remove(bookId);
-
-        // Treat 404 or missing route as "no review yet"
-        if (error is ApiException &&
-            (error.statusCode == 404 ||
-                error.message.contains('could not be found'))) {
-          debugPrint('User has not reviewed yet');
-          return null;
-        }
-
-        // Return null for other errors instead of throwing
-        debugPrint('Other error, returning null');
-        return null;
-      }
-    }
-
-    final future = fetchUserReview();
-    _userReviewPending[bookId] = future;
-    return future;
+    return _fetchUserReviewFromApi(bookId: bookId);
   }
 
   // ✅ FIXED: submitReview with cache invalidation
@@ -693,6 +878,7 @@ class CatalogService {
     _userReviewCache.clear();
     _userReviewPending.clear();
     _userReviewCacheTimestamp.clear();
+    _notifyCacheUpdated();
   }
 
   void invalidateBooks() {
@@ -703,12 +889,14 @@ class CatalogService {
     _allBooksCache = null;
     _allBooksPending = null;
     _allBooksCacheTimestamp = null;
+    _notifyCacheUpdated();
   }
 
   void invalidateAuthors() {
     _authorCache.clear();
     _authorPending.clear();
     _authorCacheTimestamp.clear();
+    _notifyCacheUpdated();
   }
 
   void invalidateReviews(int bookId) {
@@ -719,6 +907,7 @@ class CatalogService {
     _userReviewCache.remove(bookId);
     _userReviewPending.remove(bookId);
     _userReviewCacheTimestamp.remove(bookId);
+    _notifyCacheUpdated();
   }
 
   // ==================== OTHER METHODS ====================
