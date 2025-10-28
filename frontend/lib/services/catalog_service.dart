@@ -56,30 +56,6 @@ class CatalogService {
     return DateTime.now().difference(timestamp) > _cacheRefreshInterval;
   }
 
-  /// Update cache timestamp for a key
-  void _updateCacheTimestamp(String cacheType, String key) {
-    switch (cacheType) {
-      case 'categories':
-        _categoryCacheTimestamp[key] = DateTime.now();
-        break;
-      case 'authors':
-        _authorCacheTimestamp[key] = DateTime.now();
-        break;
-      case 'books':
-        _bookCacheTimestamp[key] = DateTime.now();
-        break;
-      case 'allBooks':
-        _allBooksCacheTimestamp = DateTime.now();
-        break;
-      case 'reviews':
-        _reviewsCacheTimestamp[int.parse(key)] = DateTime.now();
-        break;
-      case 'userReview':
-        _userReviewCacheTimestamp[int.parse(key)] = DateTime.now();
-        break;
-    }
-  }
-
   /// Check if cached data should be refreshed based on timestamp
   bool _shouldRefreshCache(String cacheType, String key) {
     switch (cacheType) {
@@ -140,6 +116,7 @@ class CatalogService {
                     .toList(growable: false)
               : const <Category>[];
           _categoryCache[key] = list;
+          _categoryCacheTimestamp[key] = DateTime.now();
           _categoryPending.remove(key);
           return List<Category>.unmodifiable(list);
         })
@@ -269,6 +246,7 @@ class CatalogService {
             (item) => Book.fromJson(item),
           );
           _bookCache[key] = result;
+          _bookCacheTimestamp[key] = DateTime.now();
           _bookPending.remove(key);
           return result;
         })
@@ -307,6 +285,7 @@ class CatalogService {
         .then((books) {
           if (_allBooksCacheKey == ownerKey) {
             _allBooksCache = books;
+            _allBooksCacheTimestamp = DateTime.now();
             _allBooksPending = null;
           }
           return List<Book>.unmodifiable(books);
@@ -469,6 +448,7 @@ class CatalogService {
           };
 
           _reviewsCache[bookId] = result;
+          _reviewsCacheTimestamp[bookId] = DateTime.now();
           _reviewsPending.remove(bookId);
           return result;
         })
@@ -537,11 +517,13 @@ class CatalogService {
 
         final review = BookReview.fromJson(reviewJson);
         _userReviewCache[bookId] = review;
+        _userReviewCacheTimestamp[bookId] = DateTime.now();
         _userReviewPending.remove(bookId);
         return review;
       } catch (error) {
         debugPrint('Error fetching user review: $error');
         _userReviewCache[bookId] = null;
+        _userReviewCacheTimestamp.remove(bookId);
         _userReviewPending.remove(bookId);
 
         // Treat 404 or missing route as "no review yet"
@@ -587,8 +569,10 @@ class CatalogService {
 
     // Invalidate cache
     _reviewsCache.remove(bookId);
+    _reviewsCacheTimestamp.remove(bookId);
     _reviewsPending.remove(bookId);
     _userReviewCache.remove(bookId);
+    _userReviewCacheTimestamp.remove(bookId);
     _userReviewPending.remove(bookId);
 
     return BookReview.fromJson(_unwrap(json));
@@ -619,8 +603,10 @@ class CatalogService {
 
     // Invalidate cache
     _reviewsCache.remove(bookId);
+    _reviewsCacheTimestamp.remove(bookId);
     _reviewsPending.remove(bookId);
     _userReviewCache.remove(bookId);
+    _userReviewCacheTimestamp.remove(bookId);
     _userReviewPending.remove(bookId);
 
     return BookReview.fromJson(_unwrap(json));
@@ -685,36 +671,54 @@ class CatalogService {
   void invalidateCache() {
     _categoryCache.clear();
     _categoryPending.clear();
+    _categoryCacheTimestamp.clear();
+
     _authorCache.clear();
     _authorPending.clear();
+    _authorCacheTimestamp.clear();
+
     _bookCache.clear();
     _bookPending.clear();
+    _bookCacheTimestamp.clear();
+
     _allBooksCache = null;
     _allBooksPending = null;
     _allBooksCacheKey = null;
+    _allBooksCacheTimestamp = null;
+
     _reviewsCache.clear();
     _reviewsPending.clear();
+    _reviewsCacheTimestamp.clear();
+
     _userReviewCache.clear();
     _userReviewPending.clear();
+    _userReviewCacheTimestamp.clear();
   }
 
   void invalidateBooks() {
     _bookCache.clear();
     _bookPending.clear();
+    _bookCacheTimestamp.clear();
+
     _allBooksCache = null;
     _allBooksPending = null;
+    _allBooksCacheTimestamp = null;
   }
 
   void invalidateAuthors() {
     _authorCache.clear();
     _authorPending.clear();
+    _authorCacheTimestamp.clear();
   }
 
   void invalidateReviews(int bookId) {
     _reviewsCache.remove(bookId);
     _reviewsPending.remove(bookId);
+    _reviewsCacheTimestamp.remove(bookId);
+
     _userReviewCache.remove(bookId);
     _userReviewPending.remove(bookId);
+    _userReviewCacheTimestamp.remove(bookId);
   }
 
   // ==================== OTHER METHODS ====================
