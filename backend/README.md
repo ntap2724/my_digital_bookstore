@@ -56,6 +56,99 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
+## Essay Document Generator
+
+This project includes an Artisan command to generate academic essay documents in `.docx` format with standard formatting.
+
+### Usage
+
+```bash
+php artisan essay:generate [options]
+```
+
+### Options
+
+- `--title` : Essay title (default: varies by language)
+- `--student` : Student name (default: varies by language)
+- `--student-id` : Student ID (default: 12345678)
+- `--class` : Class name (default: varies by language)
+- `--course` : Course name (default: varies by language)
+- `--instructor` : Instructor name (default: varies by language)
+- `--university` : University name (default: varies by language)
+- `--department` : Department name (default: varies by language)
+- `--language=vi|en` : Language (default: vi)
+- `--citation=apa|ieee` : Citation style (default: apa)
+- `--out` : Output path (default: storage/app/essays/<slugified-title>.docx)
+- `--from-markdown` : Parse content from Markdown file
+
+### Examples
+
+Generate an essay with custom information:
+
+```bash
+php artisan essay:generate \
+  --title="Digital Bookstore System" \
+  --student="John Doe" \
+  --student-id="12345678" \
+  --class="CS2024" \
+  --course="Graduation Thesis" \
+  --instructor="Dr. Jane Smith" \
+  --university="ABC University" \
+  --department="Department of Computer Science" \
+  --language=en
+```
+
+Generate from a Markdown file:
+
+```bash
+php artisan essay:generate \
+  --title="My Essay" \
+  --student="Jane Smith" \
+  --student-id="87654321" \
+  --from-markdown=docs/essay.md \
+  --language=en
+```
+
+Generate with Vietnamese language (default):
+
+```bash
+php artisan essay:generate \
+  --title="Hệ thống Thư viện Điện tử" \
+  --student="Nguyễn Văn A" \
+  --student-id="12345678"
+```
+
+### Document Structure
+
+The generated document includes:
+
+1. **Cover Page**: University, department, course, title, student info, instructor, date (no page number)
+2. **Acknowledgements**: Optional acknowledgement section
+3. **Abstract**: 150-250 word summary with keywords
+4. **Table of Contents**: Placeholder for auto-generated TOC
+5. **Introduction**: Background, problem statement, objectives, scope, methodology
+6. **Literature Review**: Related research and theoretical foundations
+7. **Requirements & System Design**: Functional and non-functional requirements
+8. **Architecture & Technology**: Backend (Laravel 12, Sanctum, REST) and Frontend (Flutter 3, Material 3)
+9. **Data Model**: Database schema with tables for users, authors, categories, books, orders, wallets, reviews, votes
+10. **Implementation & Features**: User management, catalog, orders, wallet, reviews
+11. **Testing & Evaluation**: Unit and integration testing
+12. **Discussion**: Limitations and future work
+13. **Conclusion**: Summary of achievements
+14. **References**: Bibliography in APA/IEEE format
+15. **Appendices**: Figures, tables, and supplementary materials
+
+### Formatting
+
+- **Paper**: A4
+- **Margins**: 2.54cm (1 inch) on all sides
+- **Font**: Times New Roman, 12pt
+- **Line Spacing**: 1.5
+- **Alignment**: Justified
+- **Paragraph Spacing**: 6pt before/after
+- **Headings**: Numbered (1, 1.1, 1.1.1)
+- **Page Numbers**: Starting from first content section (footer, centered)
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
