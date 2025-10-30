@@ -149,6 +149,29 @@ The generated document includes:
 - **Headings**: Numbered (1, 1.1, 1.1.1)
 - **Page Numbers**: Starting from first content section (footer, centered)
 
+### Troubleshooting
+
+If you encounter the error `Class "PhpOffice\PhpWord\PhpWord" not found`, it means the dependencies are not properly installed. Follow these steps:
+
+1. **Install Composer Dependencies**:
+   ```bash
+   composer install
+   ```
+
+2. **If the error persists, regenerate the autoloader**:
+   ```bash
+   composer dump-autoload
+   ```
+
+3. **Verify the installation**:
+   ```bash
+   composer show phpoffice/phpword
+   ```
+   
+   This should display the package version (^1.3) if installed correctly.
+
+4. **On Windows**: Make sure you run these commands in the same directory where `composer.json` is located (the `backend` directory).
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
