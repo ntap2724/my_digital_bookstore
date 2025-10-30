@@ -7,6 +7,8 @@ use App\Models\Author;
 use App\Models\Book;
 use App\Models\BookReview;
 use App\Models\User;
+use App\Models\UserBook;
+use App\Services\PdfTextExtractor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -17,6 +19,10 @@ use Illuminate\Support\Str;
 
 class BookController extends Controller
 {
+    public function __construct(private PdfTextExtractor $pdfTextExtractor)
+    {
+    }
+
     public function index(Request $request)
     {
         $perPage = (int) $request->input('per_page', 12);
@@ -391,108 +397,60 @@ class BookController extends Controller
     }
 
     /**
-     * Ask a question about a book using GPT-5 (requires ownership)
+     * Extract text content from a book's PDF (requires ownership)
      */
-    public function askQuestion(Request $request, Book $book)
+    public function extractText(Request $request, Book $book)
     {
         $user = $request->user();
-        if (! $user) {
-            abort(401, 'Authentication required');
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'Authentication required',
+            ], 401);
         }
-
-        $owns = UserBook::query()
+        
+        $owned = DB::table('user_books')
             ->where('user_id', $user->id)
             ->where('book_id', $book->id)
             ->exists();
-
-        if (! $owns) {
+        
+        if (!$owned) {
             return response()->json([
-                'message' => 'You must own this book to ask questions.',
+                'message' => 'You must own this book to extract text',
             ], 403);
         }
-
-        $data = $request->validate([
-            'question' => ['required', 'string', 'min:3', 'max:500'],
-        ]);
-
-        $apiKey = config('services.openai.key');
-        $baseUrl = rtrim(config('services.openai.base_url', 'https://api.openai.com'), '/');
-
-        if (empty($apiKey)) {
+        
+        if (!$book->hasPdf()) {
             return response()->json([
-                'message' => 'AI service not configured.',
-            ], 500);
+                'message' => 'PDF file not available for this book',
+            ], 404);
         }
-
-        $book->loadMissing(['authors', 'category']);
-
-        $contextParts = [
-            'Title: '.$book->title,
-        ];
-
-        if ($book->subtitle) {
-            $contextParts[] = 'Subtitle: '.$book->subtitle;
-        }
-
-        if ($book->category) {
-            $contextParts[] = 'Category: '.$book->category->name;
-        }
-
-        if ($book->authors->isNotEmpty()) {
-            $contextParts[] = 'Authors: '.$book->authors->pluck('name')->join(', ');
-        }
-
-        if ($book->description) {
-            $contextParts[] = 'Description: '.Str::limit($book->description, 2000);
-        }
-
-        $context = implode("\n", array_filter($contextParts));
-
+        
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$apiKey,
-                'Content-Type' => 'application/json',
-            ])->post("{$baseUrl}/v1/chat/completions", [
-                'model' => 'gpt-5',
-                'temperature' => 0.6,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You are a helpful literary assistant. Answer concisely based on the provided book context. If the context does not contain the answer, state that you are unsure.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => "Book context:\n{$context}\n\nQuestion: {$data['question']}",
-                    ],
-                ],
-            ]);
-
-            if ($response->failed()) {
-                return response()->json([
-                    'message' => 'Failed to contact AI service.',
-                    'error' => $response->json(),
-                ], 502);
-            }
-
-            $answer = data_get($response->json(), 'choices.0.message.content');
-
-            if (! $answer) {
-                return response()->json([
-                    'message' => 'No answer returned from AI service.',
-                ], 502);
-            }
-
+            $pdfPath = $book->getPdfPath();
+            
+            $result = $this->pdfTextExtractor->extractText($pdfPath);
+            
             return response()->json([
-                'answer' => trim($answer),
+                'success' => true,
+                'text' => $result['text'],
+                'pages' => $result['pages'],
             ]);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
             report($e);
-
+            
             return response()->json([
-                'message' => 'Unable to generate answer.',
+                'success' => false,
+                'message' => 'Failed to extract text from PDF',
             ], 500);
         }
     }
+
 }
 
 

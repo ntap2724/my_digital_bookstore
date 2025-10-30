@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/models/book_review.dart';
@@ -7,6 +9,7 @@ import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
 import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
+import 'package:my_flutter_app/utils/text_saver.dart';
 import 'package:my_flutter_app/widgets/rating_stars.dart';
 import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
@@ -807,6 +810,15 @@ class _BookDetailBody extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+          
+          // Show Extract Text button if user owns the book and it has a PDF
+          if (book.owned && book.hasPdf) ...[
+            SizedBox(height: isDesktop ? 16 : 12),
+            _ExtractTextButton(
+              book: book,
+              isDesktop: isDesktop,
             ),
           ],
         ],
@@ -1961,5 +1973,178 @@ class _ErrorView extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ExtractTextButton extends StatefulWidget {
+  const _ExtractTextButton({
+    required this.book,
+    this.isDesktop = false,
+  });
+
+  final Book book;
+  final bool isDesktop;
+
+  @override
+  State<_ExtractTextButton> createState() => _ExtractTextButtonState();
+}
+
+class _ExtractTextButtonState extends State<_ExtractTextButton> {
+  bool _isExtracting = false;
+
+  Future<void> _handleExtractText() async {
+    if (_isExtracting) return;
+
+    setState(() => _isExtracting = true);
+
+    try {
+      final result = await CatalogService.instance.extractTextFromBook(widget.book.id);
+      
+      if (!mounted) return;
+
+      final text = result['text'] as String? ?? '';
+      final pages = result['pages'] as int? ?? 0;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => _ExtractedTextViewer(
+            bookTitle: widget.book.title,
+            text: text,
+            pageCount: pages,
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.extractTextError)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExtracting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.l10n;
+    
+    return OutlinedButton.icon(
+      onPressed: _isExtracting ? null : _handleExtractText,
+      icon: _isExtracting
+          ? SizedBox(
+              width: widget.isDesktop ? 20 : 16,
+              height: widget.isDesktop ? 20 : 16,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.text_snippet_outlined),
+      label: Text(_isExtracting ? t.extractTextLoading : t.extractText),
+      style: OutlinedButton.styleFrom(
+        minimumSize: Size(0, widget.isDesktop ? 48 : 40),
+      ),
+    );
+  }
+}
+
+class _ExtractedTextViewer extends StatelessWidget {
+  const _ExtractedTextViewer({
+    required this.bookTitle,
+    required this.text,
+    required this.pageCount,
+  });
+
+  final String bookTitle;
+  final String text;
+  final int pageCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.l10n;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(t.extractTextTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: t.extractTextDownload,
+            onPressed: () => _saveText(context),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bookTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$pageCount ${pageCount == 1 ? "page" : "pages"}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: SelectableText(
+                text,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveText(BuildContext context) async {
+    final t = context.l10n;
+    
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final cleanTitle = bookTitle.replaceAll(RegExp(r'[^\w\s-]'), '_');
+      final filename = '${cleanTitle}_$timestamp.txt';
+      
+      final path = await saveTextToFile(filename, text);
+      
+      if (!context.mounted) return;
+      
+      if (path != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(t.extractTextSaved(path)),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(kIsWeb ? t.extractTextDownload : t.extractTextError)),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${t.extractTextError}: $e')),
+      );
+    }
   }
 }

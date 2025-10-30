@@ -129,8 +129,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/books/{book}/pdf', [BookController::class, 'deletePdf']);
     
     // PDF download (User must own the book)
-    Route::post('/books/{book}/ask', [BookController::class, 'askQuestion']);
     Route::get('/books/{book}/pdf', [BookController::class, 'downloadPdf']);
+    
+    // Extract text from PDF (User must own the book)
+    Route::post('/books/{book}/extract-text', [BookController::class, 'extractText']);
 
     Route::post('/books/{book}/reviews', [BookReviewController::class, 'store']);
     Route::delete('/books/{book}/reviews/{review}', [BookReviewController::class, 'destroy']);

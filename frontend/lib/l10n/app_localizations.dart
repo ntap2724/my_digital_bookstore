@@ -395,6 +395,24 @@ class AppLocalizations {
   String get viewCart => _t('viewCart');
   String get quantity => _t('quantity');
 
+  // ---- Extract Text ----
+  String get extractText => _t('extractText');
+  String get extractTextDescription => _t('extractTextDescription');
+  String get extractTextLoading => _t('extractTextLoading');
+  String get extractTextError => _t('extractTextError');
+  String get extractTextNoContent => _t('extractTextNoContent');
+  String get extractTextDownload => _t('extractTextDownload');
+  String get extractTextCopy => _t('extractTextCopy');
+  String get extractTextCopied => _t('extractTextCopied');
+  String get extractTextSave => _t('extractTextSave');
+  String get extractTextShare => _t('extractTextShare');
+  String get extractTextTitle => _t('extractTextTitle');
+  String get extractTextPreview => _t('extractTextPreview');
+  String get extractTextOwnedOnly => _t('extractTextOwnedOnly');
+  String extractTextSaved(String path) => _fmt('extractTextSaved', {'path': path});
+  String extractTextPages(int count) =>
+      _fmt('extractTextPages', {'count': count.toString()});
+
   // ---- Library ----
   String get myBooks => _t('myBooks');
   String get myBooksSubtitle => _t('myBooksSubtitle');

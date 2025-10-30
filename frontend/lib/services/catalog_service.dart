@@ -1135,4 +1135,23 @@ class CatalogService {
     }
     return json;
   }
+
+  Future<Map<String, dynamic>> extractTextFromBook(int bookId) async {
+    final json = await _client.postJson(
+      '/api/books/$bookId/extract-text',
+      auth: true,
+    );
+
+    if (json['success'] == true) {
+      return {
+        'success': true,
+        'text': json['text'] as String? ?? '',
+        'pages': json['pages'] as int? ?? 0,
+      };
+    } else {
+      throw ApiException(
+        json['message'] as String? ?? 'Failed to extract text',
+      );
+    }
+  }
 }
