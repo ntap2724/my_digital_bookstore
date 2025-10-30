@@ -2,16 +2,21 @@
 
 namespace App\Providers;
 
+use App\Services\PdfTextExtractor;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Smalot\PdfParser\Parser;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(PdfTextExtractor::class, function ($app) {
+            return new PdfTextExtractor(new Parser());
+        });
     }
 
     public function boot(): void
