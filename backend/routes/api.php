@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuthorController;
 use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\BookReviewController;
+use App\Http\Controllers\Api\BookTextExtractionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ChangePasswordController;
 use App\Http\Controllers\Api\OrderController;
@@ -131,6 +132,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // PDF download (User must own the book)
     Route::post('/books/{book}/ask', [BookController::class, 'askQuestion']);
     Route::get('/books/{book}/pdf', [BookController::class, 'downloadPdf']);
+    Route::post('/books/{book}/extract-text', BookTextExtractionController::class)
+        ->middleware('throttle:10,1');
 
     Route::post('/books/{book}/reviews', [BookReviewController::class, 'store']);
     Route::delete('/books/{book}/reviews/{review}', [BookReviewController::class, 'destroy']);
