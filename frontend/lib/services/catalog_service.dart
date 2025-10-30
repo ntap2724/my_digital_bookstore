@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart'
     show ValueListenable, ValueNotifier, VoidCallback;
-import 'package:flutter/material.dart';
 import 'package:my_flutter_app/models/author.dart';
 import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/models/book_review.dart';
@@ -96,7 +95,7 @@ class CatalogService {
   }) {
     if (_categoryPending[key] != null) return;
     _fetchCategoriesFromApi(key: key, search: search, auth: auth)
-        .catchError((_) {});
+        .catchError((_) => <Category>[]);
   }
 
   Future<List<Category>> _fetchCategoriesFromApi({
@@ -139,7 +138,7 @@ class CatalogService {
   }) {
     if (_authorPending[key] != null) return;
     _fetchAuthorsFromApi(key: key, search: search, auth: auth)
-        .catchError((_) {});
+        .catchError((_) => <Author>[]);
   }
 
   Future<List<Author>> _fetchAuthorsFromApi({
@@ -201,7 +200,13 @@ class CatalogService {
       authorId: authorId,
       status: status,
       auth: auth,
-    ).catchError((_) {});
+    ).catchError((_) => PaginatedResult<Book>(
+          data: const [],
+          currentPage: page,
+          lastPage: page,
+          perPage: perPage,
+          total: 0,
+        ));
   }
 
   Future<PaginatedResult<Book>> _fetchBooksFromApi({
@@ -255,7 +260,8 @@ class CatalogService {
     required bool auth,
   }) {
     if (_allBooksPending != null) return;
-    _fetchAllBooksFromApi(ownerKey: ownerKey, auth: auth).catchError((_) {});
+    _fetchAllBooksFromApi(ownerKey: ownerKey, auth: auth)
+        .catchError((_) => <Book>[]);
   }
 
   Future<List<Book>> _fetchAllBooksFromApi({
@@ -284,7 +290,8 @@ class CatalogService {
 
   void _scheduleReviewsRefresh({required int bookId, required bool auth}) {
     if (_reviewsPending[bookId] != null) return;
-    _fetchReviewsFromApi(bookId: bookId, auth: auth).catchError((_) {});
+    _fetchReviewsFromApi(bookId: bookId, auth: auth)
+        .catchError((_) => <String, dynamic>{});
   }
 
   Future<Map<String, dynamic>> _fetchReviewsFromApi({
@@ -375,7 +382,7 @@ class CatalogService {
 
   void _scheduleUserReviewRefresh(int bookId) {
     if (_userReviewPending[bookId] != null) return;
-    _fetchUserReviewFromApi(bookId: bookId).catchError((_) {});
+    _fetchUserReviewFromApi(bookId: bookId).catchError((_) => null);
   }
 
   Future<BookReview?> _fetchUserReviewFromApi({required int bookId}) {
