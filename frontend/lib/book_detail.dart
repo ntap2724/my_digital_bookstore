@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/models/book_review.dart';
@@ -7,6 +7,8 @@ import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
 import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
+import 'package:my_flutter_app/text_viewer_screen.dart';
+import 'package:my_flutter_app/widgets/extract_text_dialog.dart';
 import 'package:my_flutter_app/widgets/rating_stars.dart';
 import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
@@ -35,6 +37,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   bool _loading = true;
   bool _purchasing = false;
   bool _addingToCart = false;
+  bool _extractingText = false;
   String? _error;
 
   // Review state
@@ -366,6 +369,127 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
   }
 
+  Future<void> _handleExtractText(Book book) async {
+    if (_extractingText) return;
+    final result = await showExtractTextDialog(context);
+    if (!mounted || result == null) return;
+    final trimmed = result.trim();
+    await _performExtractText(book, trimmed);
+  }
+
+  Future<void> _performExtractText(Book book, String pages) async {
+    if (_extractingText || !mounted) return;
+    final t = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final isAllPages = pages.isEmpty;
+    final loadingMessage =
+        isAllPages ? t.extractingText : t.extractingTextFromPages;
+
+    setState(() => _extractingText = true);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(loadingMessage),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final extracted = await _catalogService.extractText(
+        book.id,
+        isAllPages ? null : pages,
+      );
+      if (!mounted) return;
+
+      Navigator.of(context, rootNavigator: true).pop();
+      setState(() => _extractingText = false);
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TextViewerScreen(
+            extractedText: extracted,
+            bookTitle: book.title,
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      setState(() => _extractingText = false);
+      final message = _mapExtractionError(e);
+      _showExtractionErrorDialog(book, pages, message);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      setState(() => _extractingText = false);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${t.errorExtractingText}: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  void _showExtractionErrorDialog(Book book, String pages, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.l10n.errorExtractingText),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.l10n.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _performExtractText(book, pages);
+            },
+            child: Text(context.l10n.retry),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _mapExtractionError(ApiException e) {
+    final t = context.l10n;
+    switch (e.statusCode) {
+      case 400:
+        final message = e.body?['message']?.toString() ?? e.message;
+        return message.isNotEmpty ? message : t.errorInvalidFormat;
+      case 403:
+        return t.errorNotAuthorized;
+      case 404:
+        return t.errorBookNotFound;
+      case 500:
+        return t.errorServerError;
+      case 503:
+        return t.errorTimeout;
+      default:
+        final lower = e.message.toLowerCase();
+        if (lower.contains('connect') || lower.contains('network')) {
+          return t.errorNetworkConnection;
+        }
+        return e.message.isNotEmpty ? e.message : t.errorServerError;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.l10n;
@@ -417,6 +541,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           isInCart: _cartService.itemFor(book.id) != null,
                           onPurchase: () => _purchase(book, t),
                           onAddToCart: () => _addToCart(book, t),
+                          showExtractAction: book.owned && book.hasPdf,
+                          onExtractText: () => _handleExtractText(book),
+                          extractingText: _extractingText,
                           isDesktop: true,
                         ),
                       ),
@@ -475,6 +602,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                               isInCart: _cartService.itemFor(book.id) != null,
                               onPurchase: () => _purchase(book, t),
                               onAddToCart: () => _addToCart(book, t),
+                              showExtractAction: book.owned && book.hasPdf,
+                              onExtractText: () => _handleExtractText(book),
+                              extractingText: _extractingText,
                               isDesktop: true,
                             ),
                           ),
@@ -524,6 +654,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             isInCart: _cartService.itemFor(book.id) != null,
                             onPurchase: () => _purchase(book, t),
                             onAddToCart: () => _addToCart(book, t),
+                            showExtractAction: book.owned && book.hasPdf,
+                            onExtractText: () => _handleExtractText(book),
+                            extractingText: _extractingText,
                           ),
                         ),
                       ),
@@ -566,6 +699,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         isInCart: _cartService.itemFor(book.id) != null,
                         onPurchase: () => _purchase(book, t),
                         onAddToCart: () => _addToCart(book, t),
+                        showExtractAction: book.owned && book.hasPdf,
+                        onExtractText: () => _handleExtractText(book),
+                        extractingText: _extractingText,
                       ),
                     ),
                   ),
@@ -604,6 +740,9 @@ class _BookDetailBody extends StatelessWidget {
     required this.isInCart,
     required this.onPurchase,
     required this.onAddToCart,
+    this.showExtractAction = false,
+    this.onExtractText,
+    this.extractingText = false,
     this.isDesktop = false,
   });
 
@@ -613,6 +752,9 @@ class _BookDetailBody extends StatelessWidget {
   final bool isInCart;
   final VoidCallback onPurchase;
   final VoidCallback onAddToCart;
+  final bool showExtractAction;
+  final VoidCallback? onExtractText;
+  final bool extractingText;
   final bool isDesktop;
 
   @override
@@ -807,6 +949,32 @@ class _BookDetailBody extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+          
+          // Extract Text button - only shown if book is owned and has PDF
+          if (showExtractAction && book.hasPdf) ...[
+            SizedBox(height: isDesktop ? 16 : 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: (extractingText || onExtractText == null)
+                    ? null
+                    : onExtractText,
+                icon: extractingText
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.text_fields),
+                label: Text(
+                  extractingText ? context.l10n.extractingText : context.l10n.extractText,
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(0, isDesktop ? 48 : 40),
+                ),
+              ),
             ),
           ],
         ],

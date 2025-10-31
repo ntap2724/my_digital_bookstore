@@ -4,6 +4,7 @@ import 'package:my_flutter_app/models/author.dart';
 import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/models/book_review.dart';
 import 'package:my_flutter_app/models/category.dart';
+import 'package:my_flutter_app/models/extracted_text.dart';
 import 'package:my_flutter_app/models/paginated_result.dart';
 import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
@@ -657,6 +658,27 @@ class CatalogService {
     }
 
     return answer;
+  }
+
+  Future<ExtractedText> extractText(int bookId, String? pages) async {
+    final payload = <String, dynamic>{};
+    final trimmed = pages?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) {
+      payload['pages'] = trimmed;
+    }
+
+    try {
+      final response = await _client.postJson(
+        '/api/books/$bookId/extract-text',
+        body: payload.isEmpty ? null : payload,
+        auth: true,
+      );
+      return ExtractedText.fromJson(response);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to extract text: $e');
+    }
   }
 
   Future<List<Book>> _fetchAllBooks({bool auth = false}) async {
