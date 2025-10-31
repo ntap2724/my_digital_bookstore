@@ -149,6 +149,58 @@ The generated document includes:
 - **Headings**: Numbered (1, 1.1, 1.1.1)
 - **Page Numbers**: Starting from first content section (footer, centered)
 
+## Complete Essay Generator
+
+This project includes a specialized command to generate a complete academic essay about the My Digital Bookstore project in Vietnamese:
+
+### Usage
+
+```bash
+php artisan essay:generate-full [options]
+```
+
+### Options
+
+- `--student` : Student name (default: "Nguyễn Văn A")
+- `--student-id` : Student ID (default: "20210001")
+- `--class` : Class name (default: "CNTT-K64")
+- `--course` : Course name (default: "Đồ án môn học")
+- `--instructor` : Instructor name (default: "TS. Nguyễn Văn B")
+- `--university` : University name (default: "TRƯỜNG ĐẠI HỌC CÔNG NGHỆ")
+- `--department` : Department name (default: "KHOA CÔNG NGHỆ THÔNG TIN")
+- `--output` : Output path (default: "storage/app/essays/my_digital_bookstore_essay.docx")
+
+### Example
+
+```bash
+php artisan essay:generate-full \
+  --student="Trần Văn B" \
+  --student-id="20210123" \
+  --class="CNTT-K65" \
+  --university="TRƯỜNG ĐẠI HỌC KINH TẾ QUỐC DÂN" \
+  --department="KHOA HỆ THỐNG THÔNG TIN" \
+  --course="Lập trình web nâng cao" \
+  --instructor="PGS.TS. Nguyễn Thị C"
+```
+
+### Document Structure
+
+The generated document includes complete content (20-30 pages) in formal academic Vietnamese:
+
+1. **Trang bìa (Cover Page)**: University, department, course title, student info, instructor, date
+2. **Lời cảm ơn (Acknowledgements)**: Formal thanks to instructors, family, and friends
+3. **Tóm tắt (Abstract)**: 200-250 word overview with keywords
+4. **Mục lục (Table of Contents)**: Auto-generated TOC
+5. **Chương 1 - Mở đầu (Introduction)**: Background, objectives, scope, methodology, document structure
+6. **Chương 2 - Cơ sở lý thuyết và công nghệ (Theory & Technology)**: E-commerce, REST API, Laravel, Flutter, state management, similar systems
+7. **Chương 3 - Phân tích và thiết kế hệ thống (Analysis & Design)**: Requirements, use cases, architecture, database design, API design
+8. **Chương 4 - Triển khai hệ thống (Implementation)**: Backend (Laravel 12, models, migrations, Sanctum, controllers, PDF management) and Frontend (Flutter 3, services, screens, navigation, storage, PDF reader, i18n, themes)
+9. **Chương 5 - Kiểm thử và đánh giá (Testing & Evaluation)**: Backend tests, frontend tests, integration tests, performance evaluation
+10. **Chương 6 - Kết luận và hướng phát triển (Conclusion & Future Work)**: Achievements, limitations, future improvements
+11. **Tài liệu tham khảo (References)**: APA 7 format bibliography
+12. **Phụ lục (Appendices)**: ERD diagram, API endpoints table, UI screenshots placeholders, project structure
+
+All content is written in formal academic Vietnamese style with proper citations and technical details reflecting the actual My Digital Bookstore codebase.
 ### Troubleshooting
 
 If you encounter the error `Class "PhpOffice\PhpWord\PhpWord" not found`, it means the dependencies are not properly installed. Follow these steps:
