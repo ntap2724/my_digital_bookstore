@@ -4,11 +4,12 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Element\Section;
+use Throwable;
 
 class GenerateEssayDocx extends Command
 {
@@ -29,32 +30,55 @@ class GenerateEssayDocx extends Command
     protected $description = 'Generate a .docx essay document with standard academic formatting.';
 
     protected PhpWord $phpWord;
+
     protected array $translations = [];
+
     protected string $language = 'vi';
+
     protected string $citation = 'apa';
+
     protected array $headingCounters = [1 => 0, 2 => 0, 3 => 0];
 
     public function handle(): int
     {
-        $this->language = $this->normalizeLanguage($this->option('language'));
-        $this->citation = $this->normalizeCitation($this->option('citation'));
+        try {
+            $this->language = $this->normalizeLanguage($this->option('language'));
+            $this->citation = $this->normalizeCitation($this->option('citation'));
 
-        $this->loadTranslations();
-        $options = $this->resolveOptions();
+            $this->loadTranslations();
+            $options = $this->resolveOptions();
 
-        $this->phpWord = new PhpWord();
-        $this->configureDocument();
+            $this->phpWord = new PhpWord;
+            $this->configureDocument();
 
-        $markdownPath = $this->resolveMarkdownPath($this->option('from-markdown'));
-        $this->buildDocument($options, $markdownPath);
+            $markdownPath = $this->resolveMarkdownPath($this->option('from-markdown'));
+            $this->buildDocument($options, $markdownPath);
 
-        $outputPath = $this->getOutputPath($options['title']);
-        IOFactory::createWriter($this->phpWord, 'Word2007')->save($outputPath);
+            $outputPath = $this->getOutputPath($options['title']);
+            IOFactory::createWriter($this->phpWord, 'Word2007')->save($outputPath);
 
-        $this->info($this->trans('success_message'));
-        $this->line(realpath($outputPath));
+            $this->info($this->trans('success_message'));
+            $this->line(realpath($outputPath));
 
-        return Command::SUCCESS;
+            return Command::SUCCESS;
+        } catch (Throwable $e) {
+            $this->error('Failed to generate essay document: '.$e->getMessage());
+
+            if ($e->getMessage() === 'Class "PhpOffice\PhpWord\PhpWord" not found'
+                || str_contains($e->getMessage(), 'PhpOffice\\PhpWord')) {
+                $this->newLine();
+                $this->warn('It appears that the PHPWord library is not installed.');
+                $this->warn('Please run the following command to install dependencies:');
+                $this->newLine();
+                $this->line('  composer install');
+                $this->newLine();
+                $this->warn('If the error persists, regenerate the autoloader with:');
+                $this->newLine();
+                $this->line('  composer dump-autoload');
+            }
+
+            return Command::FAILURE;
+        }
     }
 
     protected function normalizeLanguage(?string $language): string
@@ -265,12 +289,12 @@ class GenerateEssayDocx extends Command
         $section->addTextBreak(4);
         $section->addText(Str::upper($options['title']), 'CoverTitleFont', 'CoverTitle');
         $section->addTextBreak(6);
-        $section->addText($this->trans('student_label') . $options['student'], 'CoverFont', 'CoverText');
-        $section->addText($this->trans('student_id_label') . $options['student_id'], 'CoverFont', 'CoverText');
-        $section->addText($this->trans('class_label') . $options['class'], 'CoverFont', 'CoverText');
-        $section->addText($this->trans('instructor_label') . $options['instructor'], 'CoverFont', 'CoverText');
+        $section->addText($this->trans('student_label').$options['student'], 'CoverFont', 'CoverText');
+        $section->addText($this->trans('student_id_label').$options['student_id'], 'CoverFont', 'CoverText');
+        $section->addText($this->trans('class_label').$options['class'], 'CoverFont', 'CoverText');
+        $section->addText($this->trans('instructor_label').$options['instructor'], 'CoverFont', 'CoverText');
         $section->addTextBreak(4);
-        $section->addText($this->trans('submission_date') . $this->formatSubmissionDate(), 'CoverFont', 'CoverText');
+        $section->addText($this->trans('submission_date').$this->formatSubmissionDate(), 'CoverFont', 'CoverText');
     }
 
     protected function formatSubmissionDate(): string
@@ -286,7 +310,7 @@ class GenerateEssayDocx extends Command
 
         $this->addHeading($section, $this->trans('abstract'), 1, false);
         $this->addParagraph($section, $this->trans('abstract_placeholder'));
-        $section->addText($this->trans('keywords_label') . $this->trans('keywords_placeholder'), null, 'Keywords');
+        $section->addText($this->trans('keywords_label').$this->trans('keywords_placeholder'), null, 'Keywords');
     }
 
     protected function addTableOfContents(Section $section): void
@@ -383,7 +407,7 @@ class GenerateEssayDocx extends Command
             [
                 'title' => 'references',
                 'page_break_before' => true,
-                'content' => ['references_placeholder_' . $this->citation],
+                'content' => ['references_placeholder_'.$this->citation],
             ],
             [
                 'title' => 'appendices',
@@ -400,7 +424,7 @@ class GenerateEssayDocx extends Command
 
     protected function renderChapter(Section $section, array $chapter): void
     {
-        if (!empty($chapter['page_break_before'])) {
+        if (! empty($chapter['page_break_before'])) {
             $section->addPageBreak();
         }
 
@@ -413,7 +437,7 @@ class GenerateEssayDocx extends Command
             $this->addParagraph($section, $this->trans($contentKey));
         }
 
-        if (!empty($chapter['appendix'])) {
+        if (! empty($chapter['appendix'])) {
             $this->addParagraph($section, $this->trans('figure_caption_example'), 'FigureCaptionFont', 'FigureCaption');
             $this->addParagraph($section, $this->trans('table_caption_example'), 'TableCaptionFont', 'TableCaption');
         }
@@ -432,7 +456,7 @@ class GenerateEssayDocx extends Command
         if ($numbered) {
             $this->incrementHeadingCounters($level);
             $label = $this->composeHeadingNumber($level);
-            $displayText = trim($label . ' ' . ($level === 1 ? Str::upper($text) : $text));
+            $displayText = trim($label.' '.($level === 1 ? Str::upper($text) : $text));
         } else {
             $displayText = $level === 1 ? Str::upper($text) : $text;
         }
@@ -485,14 +509,14 @@ class GenerateEssayDocx extends Command
     protected function composeHeadingNumber(int $level): string
     {
         if ($level <= 1) {
-            return (string) $this->headingCounters[1] . '.';
+            return (string) $this->headingCounters[1].'.';
         }
 
         if ($level === 2) {
-            return $this->headingCounters[1] . '.' . $this->headingCounters[2] . '.';
+            return $this->headingCounters[1].'.'.$this->headingCounters[2].'.';
         }
 
-        return $this->headingCounters[1] . '.' . $this->headingCounters[2] . '.' . $this->headingCounters[3] . '.';
+        return $this->headingCounters[1].'.'.$this->headingCounters[2].'.'.$this->headingCounters[3].'.';
     }
 
     protected function addParagraph(Section $section, string $text, ?string $fontStyle = null, string $paragraphStyle = 'Normal'): void
@@ -515,6 +539,7 @@ class GenerateEssayDocx extends Command
 
             if ($trimmed === '') {
                 $this->flushParagraphBuffer($section, $buffer);
+
                 continue;
             }
 
@@ -522,12 +547,14 @@ class GenerateEssayDocx extends Command
                 $this->flushParagraphBuffer($section, $buffer);
                 $level = min(strlen($matches[1]), 3);
                 $this->addHeading($section, trim($matches[2]), $level, true);
+
                 continue;
             }
 
             if (preg_match('/^[*-]\s+(.+)$/', $trimmed, $matches)) {
                 $this->flushParagraphBuffer($section, $buffer);
                 $section->addListItem($matches[1], 0, null, ['spaceBefore' => Converter::pointToTwip(6), 'spaceAfter' => Converter::pointToTwip(6)]);
+
                 continue;
             }
 
@@ -539,6 +566,7 @@ class GenerateEssayDocx extends Command
                     'spaceAfter' => Converter::pointToTwip(6),
                     'indentation' => ['left' => Converter::cmToTwip(1)],
                 ]);
+
                 continue;
             }
 
@@ -564,7 +592,7 @@ class GenerateEssayDocx extends Command
 
     protected function resolveMarkdownPath(?string $path): ?string
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
@@ -573,6 +601,7 @@ class GenerateEssayDocx extends Command
         }
 
         $candidate = base_path($path);
+
         return file_exists($candidate) ? $candidate : null;
     }
 
@@ -582,14 +611,14 @@ class GenerateEssayDocx extends Command
         if ($custom) {
             $path = Str::startsWith($custom, DIRECTORY_SEPARATOR)
                 ? $custom
-                : storage_path('app/' . ltrim($custom, '/'));
+                : storage_path('app/'.ltrim($custom, '/'));
         } else {
             $slug = Str::slug($title) ?: 'essay';
-            $path = storage_path('app/essays/' . $slug . '.docx');
+            $path = storage_path('app/essays/'.$slug.'.docx');
         }
 
         $directory = dirname($path);
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 

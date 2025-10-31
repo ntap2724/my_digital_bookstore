@@ -201,6 +201,28 @@ The generated document includes complete content (20-30 pages) in formal academi
 12. **Phụ lục (Appendices)**: ERD diagram, API endpoints table, UI screenshots placeholders, project structure
 
 All content is written in formal academic Vietnamese style with proper citations and technical details reflecting the actual My Digital Bookstore codebase.
+### Troubleshooting
+
+If you encounter the error `Class "PhpOffice\PhpWord\PhpWord" not found`, it means the dependencies are not properly installed. Follow these steps:
+
+1. **Install Composer Dependencies**:
+   ```bash
+   composer install
+   ```
+
+2. **If the error persists, regenerate the autoloader**:
+   ```bash
+   composer dump-autoload
+   ```
+
+3. **Verify the installation**:
+   ```bash
+   composer show phpoffice/phpword
+   ```
+   
+   This should display the package version (^1.3) if installed correctly.
+
+4. **On Windows**: Make sure you run these commands in the same directory where `composer.json` is located (the `backend` directory).
 
 ## License
 

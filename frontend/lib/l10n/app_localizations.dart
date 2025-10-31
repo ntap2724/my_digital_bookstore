@@ -549,6 +549,43 @@ class AppLocalizations {
   String get askBookAnswerHeading => _t('askBookAnswerHeading');
   String get askBookErrorGeneric => _t('askBookErrorGeneric');
   
+  // ---- Text Extraction ----
+  String get extractText => _t('extractText');
+  String get extractTextFromPdf => _t('extractTextFromPdf');
+  String get allPages => _t('allPages');
+  String get specificPages => _t('specificPages');
+  String get pageSelection => _t('pageSelection');
+  String get pageSelectionHint => _t('pageSelectionHint');
+  String get pageSelectionHelper => _t('pageSelectionHelper');
+  String get pageInputInvalid => _t('pageInputInvalid');
+  String get extract => _t('extract');
+  String get extractingText => _t('extractingText');
+  String get extractingTextFromPages => _t('extractingTextFromPages');
+  String get extractedTextTitle => _t('extractedTextTitle');
+  String get copyToClipboard => _t('copyToClipboard');
+  String get saveAsFile => _t('saveAsFile');
+  String get copiedToClipboard => _t('copiedToClipboard');
+  String get failedToCopy => _t('failedToCopy');
+  String get failedToSave => _t('failedToSave');
+  String get downloadStarted => _t('downloadStarted');
+  String get savedTo => _t('savedTo');
+  String get ok => _t('ok');
+  String get extractionMetadata => _t('extractionMetadata');
+  String totalPagesLabel(String count) =>
+      _fmt('totalPagesLabel', {'count': count});
+  String extractedPagesLabel(String pages) =>
+      _fmt('extractedPagesLabel', {'pages': pages});
+  String pageCountLabel(String count) =>
+      _fmt('pageCountLabel', {'count': count});
+  String get noTextExtracted => _t('noTextExtracted');
+  String get errorExtractingText => _t('errorExtractingText');
+  String get errorInvalidFormat => _t('errorInvalidFormat');
+  String get errorNotAuthorized => _t('errorNotAuthorized');
+  String get errorBookNotFound => _t('errorBookNotFound');
+  String get errorServerError => _t('errorServerError');
+  String get errorTimeout => _t('errorTimeout');
+  String get errorNetworkConnection => _t('errorNetworkConnection');
+  
   // ---- Error texts ----
   String get errorLoadingInfo => _t('errorLoadingInfo');
 }
