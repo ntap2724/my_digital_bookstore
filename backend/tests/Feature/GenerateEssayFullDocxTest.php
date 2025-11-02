@@ -40,7 +40,7 @@ class GenerateEssayFullDocxTest extends TestCase
         $this->assertFileExists($this->defaultPath);
         $this->assertDocxContainsStrings($this->defaultPath, [
             'HỆ THỐNG HIỆU SÁCH ĐIỆN TỬ TRỰC TUYẾN',
-            'My Digital Bookstore - Laravel 12 & Flutter 3',
+            'My Digital Bookstore - Laravel 12 &amp; Flutter 3',
             'CHƯƠNG 1: MỞ ĐẦU',
             'CHƯƠNG 4: TRIỂN KHAI HỆ THỐNG',
             'TÀI LIỆU THAM KHẢO',

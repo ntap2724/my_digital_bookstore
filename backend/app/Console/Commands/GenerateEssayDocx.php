@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use Throwable;
@@ -107,6 +108,8 @@ class GenerateEssayDocx extends Command
 
     protected function configureDocument(): void
     {
+        Settings::setOutputEscapingEnabled(true);
+
         $this->phpWord->setDefaultFontName('Times New Roman');
         $this->phpWord->setDefaultFontSize(12);
         $this->phpWord->setDefaultParagraphStyle([
