@@ -231,7 +231,7 @@ class GenerateEssayFullDocx extends Command
             $this->addParagraph($section, $paragraph);
         }
 
-        $section->addText('Từ khóa: Laravel, Flutter, REST API, Sanctum, thương mại điện tử, hiệu sách số, ví điện tử', null, 'Normal');
+        $section->addText('Từ khóa: Laravel, Flutter, REST API, Sanctum, thương mại điện tử, hiệu sách số, ví điện tử, Tesseract OCR, trích xuất văn bản PDF', null, 'Normal');
     }
 
     protected function addTableOfContents(Section $section): void
@@ -389,7 +389,8 @@ class GenerateEssayFullDocx extends Command
     {
         return [
             'Trong bối cảnh chuyển đổi số và sự phát triển mạnh mẽ của thương mại điện tử, nhu cầu tiếp cận sách điện tử ngày càng gia tăng. Bài tiểu luận này trình bày quá trình phân tích, thiết kế và triển khai hệ thống Hiệu sách điện tử trực tuyến (My Digital Bookstore), một nền tảng thương mại điện tử toàn diện cho phép người dùng khám phá, mua sắm và quản lý thư viện sách số cá nhân. Hệ thống được xây dựng dựa trên kiến trúc client-server hiện đại, với backend sử dụng Laravel Framework phiên bản 12 (PHP 8.2) kết hợp cơ chế xác thực Sanctum và REST API, cùng frontend được phát triển bằng Flutter Framework phiên bản 3 hỗ trợ Material Design 3, cho phép triển khai đa nền tảng trên di động, web và desktop.',
-            'Hệ thống tích hợp đầy đủ các chức năng quản lý danh mục sách, tác giả, thể loại, hệ thống đơn hàng, ví điện tử, trích xuất văn bản từ PDF, đánh giá và bình luận. Phần backend triển khai các controller RESTful, models Eloquent, migrations cơ sở dữ liệu và feature tests với PHPUnit, trong khi frontend áp dụng kiến trúc singleton services để quản lý trạng thái và giao tiếp API thông qua HTTP client. Người dùng có thể đăng ký, đăng nhập, duyệt danh mục, xem chi tiết sách, đọc PDF trực tuyến, trích xuất văn bản từ các trang PDF đã mua, thêm vào giỏ hàng, thanh toán qua ví điện tử, theo dõi lịch sử đơn hàng, quản lý thư viện cá nhân, và tham gia đánh giá sách. Hệ thống cũng cung cấp giao diện quản trị cho admin để quản lý người dùng, sách, tác giả, danh mục, đơn hàng, yêu cầu nạp tiền và điều chỉnh ví. Kết quả kiểm thử cho thấy hệ thống hoạt động ổn định, đáp ứng yêu cầu chức năng và phi chức năng, tạo nền tảng vững chắc cho việc mở rộng và phát triển các tính năng nâng cao trong tương lai.',
+            'Hệ thống tích hợp đầy đủ các chức năng quản lý danh mục sách, tác giả, thể loại, hệ thống đơn hàng, ví điện tử, trích xuất văn bản từ PDF (hỗ trợ cả PDF text-based và image-based với Tesseract OCR), đánh giá và bình luận. Phần backend triển khai các controller RESTful, models Eloquent, migrations cơ sở dữ liệu và feature tests với PHPUnit, trong khi frontend áp dụng kiến trúc singleton services để quản lý trạng thái và giao tiếp API thông qua HTTP client. Người dùng có thể đăng ký, đăng nhập, duyệt danh mục, xem chi tiết sách, đọc PDF trực tuyến, trích xuất văn bản từ các trang PDF đã mua (bao gồm PDF scan nhờ Tesseract OCR), thêm vào giỏ hàng, thanh toán qua ví điện tử, theo dõi lịch sử đơn hàng, quản lý thư viện cá nhân, và tham gia đánh giá sách. Hệ thống cũng cung cấp giao diện quản trị cho admin để quản lý người dùng, sách, tác giả, danh mục, đơn hàng, yêu cầu nạp tiền và điều chỉnh ví. Kết quả kiểm thử cho thấy hệ thống hoạt động ổn định, đáp ứng yêu cầu chức năng và phi chức năng, tạo nền tảng vững chắc cho việc mở rộng và phát triển các tính năng nâng cao trong tương lai.',
+            'Bài viết đánh giá sâu hiệu năng giữa cơ chế parsing truyền thống và pipeline OCR với Tesseract, mô tả chiến lược phát hiện loại PDF tự động, cơ chế xử lý bất đồng bộ bằng queue jobs và các biện pháp đảm bảo chất lượng như kiểm thử end-to-end, theo dõi hiệu năng và quản trị vận hành. Các kết quả cho thấy giải pháp Tesseract chạy hoàn toàn tại chỗ, không phát sinh chi phí bản quyền nhưng đòi hỏi tối ưu tài nguyên và thời gian xử lý, qua đó đưa ra các khuyến nghị cải tiến trong tương lai.'
         ];
     }
 
@@ -445,14 +446,14 @@ class GenerateEssayFullDocx extends Command
                                 'Chức năng danh mục: Xem danh sách sách với phân trang, tìm kiếm theo tên, lọc theo tác giả và thể loại, sắp xếp theo giá hoặc ngày xuất bản, xem chi tiết sách bao gồm mô tả, giá, tác giả, thể loại, đánh giá trung bình, số lượng bản sao còn lại.',
                                 'Chức năng mua sắm: Thêm sách vào giỏ hàng, xem giỏ hàng, cập nhật số lượng, xóa sản phẩm, thanh toán bằng ví điện tử, xem lịch sử đơn hàng, hủy đơn hàng chưa hoàn thành.',
                                 'Chức năng ví điện tử: Xem số dư ví, tạo yêu cầu nạp tiền, xem lịch sử giao dịch nạp tiền và thanh toán.',
-                                'Chức năng đọc sách: Xem danh sách sách đã mua trong thư viện cá nhân, tải xuống và đọc file PDF trực tuyến thông qua trình đọc tích hợp, trích xuất văn bản từ PDF với lựa chọn trang cụ thể.',
+                                'Chức năng đọc sách: Xem danh sách sách đã mua trong thư viện cá nhân, tải xuống và đọc file PDF trực tuyến thông qua trình đọc tích hợp, trích xuất văn bản từ PDF với lựa chọn trang cụ thể. Hệ thống hỗ trợ cả PDF text-based (parsing truyền thống với smalot/pdfparser) và PDF image-based (scan) thông qua Tesseract OCR, tự động phát hiện loại PDF và lựa chọn phương pháp trích xuất phù hợp.',
                                 'Chức năng đánh giá: Viết đánh giá và bình luận cho sách đã mua, chấm điểm (rating), sửa hoặc xóa đánh giá của mình, vote (upvote/downvote) cho đánh giá của người khác.',
                                 'Chức năng quản trị: Admin có thể quản lý người dùng (xem danh sách, cập nhật vai trò, vô hiệu hóa tài khoản), quản lý sách (thêm, sửa, xóa, upload PDF), quản lý tác giả và thể loại (CRUD), xử lý yêu cầu nạp tiền (chấp nhận/từ chối), điều chỉnh số dư ví người dùng.',
                                 'Chức năng đa ngôn ngữ và giao diện: Hỗ trợ tiếng Anh và tiếng Việt, chế độ sáng/tối (light/dark theme), tùy chỉnh cỡ chữ và font chữ.',
                             ],
                         ],
                         'paragraphs' => [
-                            'Các chức năng không nằm trong phạm vi đồ án bao gồm: tích hợp cổng thanh toán trực tuyến thực tế (VNPay, MoMo, PayPal), hệ thống gợi ý sách thông minh dựa trên machine learning, tìm kiếm nâng cao với full-text search hoặc Elasticsearch, hệ thống thông báo đẩy (push notifications), quản lý bản quyền kỹ thuật số DRM (Digital Rights Management), phân tích dữ liệu và báo cáo chi tiết (analytics dashboard), tích hợp CI/CD pipeline tự động.',
+                            'Các chức năng không nằm trong phạm vi đồ án bao gồm: tích hợp cổng thanh toán trực tuyến thực tế (VNPay, MoMo, PayPal), hệ thống gợi ý sách thông minh dựa trên machine learning, tìm kiếm nâng cao với full-text search hoặc Elasticsearch, hệ thống thông báo đẩy (push notifications), quản lý bản quyền kỹ thuật số DRM (Digital Rights Management), phân tích dữ liệu và báo cáo chi tiết (analytics dashboard), tích hợp CI/CD pipeline tự động, sử dụng commercial cloud OCR services (Google Cloud Vision API, AWS Textract, Azure Computer Vision).',
                         ],
                     ],
                     [
@@ -585,15 +586,11 @@ class GenerateEssayFullDocx extends Command
                         ],
                     ],
                     [
-                        'title' => 'Xử lý PDF và trích xuất văn bản',
+                        'title' => 'Xử lý PDF và trích xuất văn bản với Tesseract OCR',
                         'level' => 2,
                         'paragraphs' => [
                             'PDF (Portable Document Format) là định dạng tài liệu được tiêu chuẩn hóa bởi ISO, sử dụng mô hình đối tượng để mô tả văn bản, hình ảnh, font chữ và cấu trúc trang. Mỗi tài liệu PDF được tổ chức thành các objects liên kết với nhau thông qua cross-reference table, cho phép render chính xác nội dung trên mọi nền tảng và độ phân giải.',
                             'Các thành phần cấu trúc này bao gồm:',
-                            'Để trích xuất văn bản từ PDF, có hai hướng tiếp cận chủ đạo với mức độ phức tạp khác nhau:',
-                            'Trong đồ án, hệ thống lựa chọn thư viện smalot/pdfparser (PHP) để phân tích PDF ở cấp độ text layer. Thư viện dựa trên mẫu thiết kế parser và tokenizer, có khả năng đọc metadata, giải mã bảng mã (encoding), bóc tách các đối tượng text (Tj, TJ) và tái tạo chuỗi ký tự Unicode tương ứng. Việc tích hợp thư viện vào Laravel thông qua Composer giúp tái sử dụng, cập nhật và kiểm thử dễ dàng.',
-                            'Quá trình trích xuất văn bản đối mặt với nhiều thách thức kỹ thuật cần được xử lý trong code:',
-                            'Việc bổ sung cơ chế phân tích PDF mang lại giá trị thực tiễn cho My Digital Bookstore: người dùng có thể trích xuất trích đoạn phục vụ nghiên cứu, đối chiếu trích dẫn hoặc ghi chú, trong khi hệ thống vẫn duy trì kiểm soát quyền truy cập thông qua điều kiện sở hữu sách và giới hạn số trang xử lý. Đây là bước đệm để phát triển các tính năng nâng cao như tìm kiếm toàn văn hoặc học máy trên nội dung sách.',
                         ],
                         'lists' => [
                             [
@@ -603,17 +600,93 @@ class GenerateEssayFullDocx extends Command
                                 'Resource dictionary quản lý tham chiếu tới font, hình ảnh, pattern phục vụ render.',
                                 'Metadata, outlines và logical structure tree giúp xác định mục lục, heading, bookmarks.',
                             ],
+                        ],
+                        'paragraphs' => [
+                            'Để trích xuất văn bản từ PDF, có hai hướng tiếp cận chủ đạo với mức độ phức tạp khác nhau:',
+                        ],
+                        'lists' => [
                             [
-                                'Phân tích cú pháp (PDF parsing): Đọc trực tiếp các content stream, giải mã encoding, chuyển đổi glyph thành ký tự văn bản. Cách tiếp cận này giữ nguyên độ chính xác khi tài liệu có text layer rõ ràng.',
-                                'Nhận diện ký tự quang học (Optical Character Recognition - OCR): Sử dụng machine learning để nhận dạng ký tự từ hình ảnh raster. Phương pháp này thích hợp với PDF scan không có text layer nhưng yêu cầu chi phí tính toán lớn và mô hình học sâu.',
+                                'Phân tích cú pháp (PDF parsing): Đọc trực tiếp các content stream, giải mã encoding, chuyển đổi glyph thành ký tự văn bản. Cách tiếp cận này giữ nguyên độ chính xác khi tài liệu có text layer rõ ràng. Trong My Digital Bookstore, thư viện smalot/pdfparser (PHP) được sử dụng cho phương pháp này.',
+                                'Nhận diện ký tự quang học (Optical Character Recognition - OCR): Sử dụng machine learning để nhận dạng ký tự từ hình ảnh raster. Phương pháp này thích hợp với PDF scan không có text layer nhưng yêu cầu chi phí tính toán lớn. My Digital Bookstore triển khai OCR bằng Tesseract OCR engine.',
                             ],
+                        ],
+                        'children' => [
+                            [
+                                'title' => 'Tesseract OCR Engine',
+                                'level' => 3,
+                                'paragraphs' => [
+                                    'Tesseract là một trong những OCR engine mã nguồn mở tốt nhất hiện nay, ban đầu được phát triển bởi HP Labs từ năm 1985-1995, sau đó được Google tiếp quản và phát triển từ năm 2006. Tesseract hỗ trợ nhận dạng hơn 100 ngôn ngữ bao gồm tiếng Việt, sử dụng các mô hình machine learning (LSTM neural networks) để cải thiện độ chính xác.',
+                                    'Trong hệ thống My Digital Bookstore, Tesseract được tích hợp để xử lý các PDF scan hoặc PDF image-based không có text layer có thể trích xuất bằng phương pháp parsing truyền thống. Quy trình xử lý bao gồm:',
+                                ],
+                                'lists' => [
+                                    [
+                                        'Bước 1 - Phát hiện loại PDF: Hệ thống tự động phát hiện PDF có text layer hay không bằng cách thử parsing với smalot/pdfparser. Nếu parsing trả về ít hoặc không có văn bản, hệ thống chuyển sang phương pháp OCR.',
+                                        'Bước 2 - Chuyển đổi PDF sang hình ảnh: Sử dụng thư viện spatie/pdf-to-image (dựa trên Imagick) để chuyển từng trang PDF thành hình ảnh PNG/JPG với độ phân giải 300 DPI để đảm bảo chất lượng OCR.',
+                                        'Bước 3 - Tiền xử lý hình ảnh: Áp dụng các kỹ thuật như grayscale conversion, noise reduction, contrast enhancement để cải thiện chất lượng đầu vào cho Tesseract.',
+                                        'Bước 4 - Nhận dạng OCR: Gọi Tesseract qua thư viện thiagoalessio/tesseract_ocr (PHP wrapper) với cấu hình ngôn ngữ (vie+eng) và PSM (Page Segmentation Mode) phù hợp.',
+                                        'Bước 5 - Hậu xử lý văn bản: Làm sạch kết quả OCR, loại bỏ ký tự lỗi, ghép nối các đoạn văn bản từ nhiều trang.',
+                                        'Bước 6 - Queue processing: Do OCR tốn thời gian (10-30 giây/trang), các tác vụ OCR được đưa vào queue jobs để xử lý bất đồng bộ, tránh timeout cho người dùng.',
+                                    ],
+                                ],
+                            ],
+                            [
+                                'title' => 'Ưu và nhược điểm của Tesseract OCR',
+                                'level' => 3,
+                                'paragraphs' => [
+                                    'Việc lựa chọn Tesseract OCR mang lại nhiều lợi ích nhưng cũng có những hạn chế cần cân nhắc:',
+                                    'Ưu điểm của Tesseract OCR:',
+                                ],
+                                'lists' => [
+                                    [
+                                        'Miễn phí và mã nguồn mở: Không phát sinh chi phí bản quyền hay API calls, phù hợp cho dự án MVP và small-medium workload.',
+                                        'Chạy local trên server: Không phụ thuộc dịch vụ bên ngoài, không cần internet, đảm bảo uptime 100% khi server hoạt động.',
+                                        'Bảo mật và quyền riêng tư: Dữ liệu PDF không bị upload lên cloud, phù hợp với các tổ chức có yêu cầu bảo mật nghiêm ngặt.',
+                                        'Hỗ trợ đa ngôn ngữ: Tesseract hỗ trợ hơn 100 ngôn ngữ bao gồm tiếng Việt (trained data có sẵn), có thể kết hợp nhiều ngôn ngữ trong một lần quét.',
+                                        'Tùy chỉnh và kiểm soát: Có thể điều chỉnh các tham số OCR (PSM, OEM), tiền xử lý hình ảnh, và thậm chí huấn luyện lại mô hình với dữ liệu tùy chỉnh.',
+                                    ],
+                                ],
+                                'paragraphs' => [
+                                    'Nhược điểm của Tesseract OCR:',
+                                ],
+                                'lists' => [
+                                    [
+                                        'Tốc độ xử lý chậm: Tesseract xử lý khoảng 10-30 giây/trang (tùy độ phức tạp), chậm hơn đáng kể so với cloud API như Google Cloud Vision (~1-2 giây/trang) hay AWS Textract.',
+                                        'Tiêu tốn tài nguyên server: OCR process tốn CPU và memory (100-200MB/request), có thể ảnh hưởng đến các dịch vụ khác trên cùng server khi xử lý nhiều request đồng thời.',
+                                        'Độ chính xác thấp hơn với ảnh kém chất lượng: Tesseract hoạt động tốt với ảnh scan rõ nét (300+ DPI) nhưng gặp khó khăn với ảnh mờ, nghiêng, nhiễu, ánh sáng kém. Cloud API thường có accuracy cao hơn nhờ mô hình AI tiên tiến.',
+                                        'Cần cài đặt và cấu hình: Phải cài Tesseract binary và trained data trên server, cần kiến thức system admin. Cloud API chỉ cần API key.',
+                                        'Khó scale cho workload lớn: Khi lượng PDF tăng cao, cần nhiều server workers hoặc chuyển sang cloud API để tránh bottleneck. Horizontal scaling Tesseract phức tạp hơn so với pay-per-use cloud services.',
+                                    ],
+                                ],
+                            ],
+                            [
+                                'title' => 'So sánh Tesseract vs Cloud OCR APIs',
+                                'level' => 3,
+                                'paragraphs' => [
+                                    'Bảng so sánh giúp làm rõ trade-offs giữa Tesseract OCR (self-hosted) và các cloud OCR services như Google Cloud Vision, AWS Textract, Azure Computer Vision:',
+                                    'Chi phí: Tesseract miễn phí hoàn toàn, chỉ tốn chi phí server. Google Cloud Vision: $1.50/1000 pages, AWS Textract: $1.50/1000 pages, Azure: $1.00/1000 pages. Với workload nhỏ (<10,000 pages/tháng), Tesseract tiết kiệm hơn.',
+                                    'Tốc độ: Tesseract 10-30s/page, Cloud APIs 1-2s/page. Khi cần real-time OCR, cloud APIs vượt trội.',
+                                    'Độ chính xác: Tesseract 85-95% (tùy chất lượng ảnh), Cloud APIs 95-99%. Với tài liệu quan trọng, cloud APIs đáng tin cậy hơn.',
+                                    'Bảo mật: Tesseract xử lý local (100% private), Cloud APIs upload dữ liệu lên internet (phụ thuộc trust model). Với dữ liệu nhạy cảm, Tesseract an toàn hơn.',
+                                    'Khả năng mở rộng: Tesseract cần scale server manually, Cloud APIs auto-scale unlimited. Với growth nhanh, cloud APIs dễ hơn.',
+                                    'Kết luận: Tesseract phù hợp cho MVP, small-medium workload, dữ liệu nhạy cảm, budget hạn chế. Cloud APIs phù hợp cho production scale lớn, cần accuracy cao, real-time processing.',
+                                ],
+                            ],
+                        ],
+                        'paragraphs' => [
+                            'Quá trình trích xuất văn bản đối mặt với nhiều thách thức kỹ thuật cần được xử lý trong code:',
+                        ],
+                        'lists' => [
                             [
                                 'Encoding phức tạp: Một số PDF sử dụng custom encoding hoặc glyph substitution khiến việc map ký tự trở nên khó khăn.',
                                 'Font nhúng đặc biệt: Các embedded font subset có thể thiếu thông tin mapping chuẩn, đòi hỏi fallback hoặc bảng tra cứu bổ sung.',
                                 'Bố cục nhiều cột và ngôn ngữ đa chiều (Right-to-Left) yêu cầu logic hậu xử lý để sắp xếp lại thứ tự đọc.',
                                 'Lựa chọn trang: Cần cơ chế parse input, loại bỏ trùng lặp, giới hạn số trang và đảm bảo thứ tự tăng dần trước khi tiến hành parsing.',
                                 'Hiệu năng và bảo mật: File PDF dung lượng lớn hoặc có cấu trúc lỗi có thể gây DoS, do đó cần giới hạn số trang trích xuất và xử lý ngoại lệ.',
+                                'Chất lượng OCR: Ảnh scan kém chất lượng, nghiêng, nhiễu ảnh hưởng trực tiếp đến accuracy. Cần tiền xử lý hình ảnh (deskew, denoise) và cho phép người dùng re-try với cấu hình khác.',
                             ],
+                        ],
+                        'paragraphs' => [
+                            'Việc bổ sung cơ chế phân tích PDF kết hợp Tesseract OCR mang lại giá trị thực tiễn cho My Digital Bookstore: người dùng có thể trích xuất văn bản từ cả PDF text-based và image-based, phục vụ nghiên cứu, đối chiếu trích dẫn hoặc ghi chú. Hệ thống vẫn duy trì kiểm soát quyền truy cập thông qua điều kiện sở hữu sách và giới hạn số trang xử lý. Đây là nền tảng để phát triển các tính năng nâng cao như tìm kiếm toàn văn trong thư viện sách đã mua, phân tích nội dung với machine learning, hoặc tạo audiobook từ văn bản trích xuất.',
                         ],
                     ],
                     [
@@ -1333,16 +1406,18 @@ class GenerateEssayFullDocx extends Command
                         'title' => 'Kết luận',
                         'level' => 2,
                         'paragraphs' => [
-                            'Đồ án "Hệ thống Hiệu sách điện tử trực tuyến - My Digital Bookstore" đã được hoàn thành theo đúng mục tiêu và phạm vi đề ra. Hệ thống cung cấp một giải pháp toàn diện cho việc quản lý và phân phối sách điện tử, bao gồm đầy đủ các chức năng từ phía người dùng (đăng ký, đăng nhập, duyệt sách, mua sắm, thanh toán, đọc sách, đánh giá) đến phía quản trị viên (quản lý người dùng, sách, tác giả, thể loại, đơn hàng, ví điện tử). Đặc biệt, tính năng trích xuất văn bản từ PDF giúp người dùng dễ dàng truy cập nội dung, hỗ trợ công tác học thuật, nghiên cứu và trích dẫn.',
+                            'Đồ án "Hệ thống Hiệu sách điện tử trực tuyến - My Digital Bookstore" đã được hoàn thành theo đúng mục tiêu và phạm vi đề ra. Hệ thống cung cấp một giải pháp toàn diện cho việc quản lý và phân phối sách điện tử, bao gồm đầy đủ các chức năng từ phía người dùng (đăng ký, đăng nhập, duyệt sách, mua sắm, thanh toán, đọc sách, đánh giá) đến phía quản trị viên (quản lý người dùng, sách, tác giả, thể loại, đơn hàng, ví điện tử).',
+                            'Đặc biệt, hệ thống đã triển khai thành công tính năng trích xuất văn bản từ PDF với hai phương pháp: parsing truyền thống cho PDF text-based (smalot/pdfparser) và Tesseract OCR cho PDF image-based (scan). Việc tích hợp Tesseract OCR - một OCR engine mã nguồn mở do Google phát triển - cho phép người dùng trích xuất văn bản từ cả những tài liệu scan không có text layer, mở rộng đáng kể khả năng ứng dụng của hệ thống. Mặc dù Tesseract có tốc độ xử lý chậm hơn (10-30 giây/trang) so với commercial cloud APIs (1-2 giây/trang), giải pháp này mang lại lợi thế về chi phí (miễn phí hoàn toàn), bảo mật (xử lý local, không upload lên cloud), và tính độc lập (không phụ thuộc dịch vụ bên ngoài). Đây là trade-off hợp lý cho MVP và small-medium workload.',
                             'Qua quá trình thực hiện đồ án, em đã có cơ hội áp dụng và củng cố kiến thức về:',
                         ],
                         'lists' => [
                             [
                                 'Phân tích và thiết kế hệ thống: Xác định yêu cầu chức năng và phi chức năng, vẽ use case diagram, thiết kế kiến trúc tổng thể, thiết kế cơ sở dữ liệu (ERD), thiết kế API.',
-                                'Lập trình backend với Laravel: Eloquent ORM, migrations, seeders, factories, authentication với Sanctum, RESTful API, controllers, routes, middleware, validation, file upload/download, feature tests với PHPUnit.',
+                                'Lập trình backend với Laravel: Eloquent ORM, migrations, seeders, factories, authentication với Sanctum, RESTful API, controllers, routes, middleware, validation, file upload/download, tích hợp Tesseract OCR, queue jobs, feature tests với PHPUnit.',
                                 'Lập trình frontend với Flutter: Widget tree, StatelessWidget/StatefulWidget, Material Design 3, navigation, state management với singleton services và ChangeNotifier, HTTP client, local storage với SharedPreferences, internationalization, theme management, PDF reader integration.',
                                 'Tích hợp frontend-backend: RESTful API communication, token-based authentication, error handling, data serialization/deserialization (JSON).',
-                                'Kiểm thử: Unit tests, feature tests, integration tests, manual testing.',
+                                'Tích hợp công nghệ bên thứ ba: Cài đặt và cấu hình Tesseract OCR trên server, xử lý PDF to image conversion, image preprocessing, OCR pipeline.',
+                                'Kiểm thử: Unit tests, feature tests, integration tests, manual testing, performance testing.',
                                 'Version control: Sử dụng Git để quản lý mã nguồn, branching, merging.',
                             ],
                         ],
@@ -1366,6 +1441,8 @@ class GenerateEssayFullDocx extends Command
                                 'Chưa có analytics dashboard: Admin không có dashboard để xem thống kê doanh số, người dùng active, sách bán chạy, revenue. Có thể bổ sung bằng cách sử dụng Laravel Nova, Filament, hoặc tự xây dựng với Chart.js.',
                                 'Chưa có CI/CD pipeline: Deployment thủ công, chưa có automated testing và deployment. Có thể bổ sung bằng cách sử dụng GitHub Actions, GitLab CI, hoặc Jenkins.',
                                 'Test coverage chưa cao: Chỉ có feature tests cho một số flows chính, chưa có unit tests cho tất cả services và widgets. Cần bổ sung thêm tests để đảm bảo chất lượng.',
+                                'Tesseract OCR có giới hạn về tốc độ và accuracy: Xử lý chậm (10-30 giây/trang) và độ chính xác thấp hơn (85-95%) so với cloud APIs (95-99%). Với PDF scan chất lượng kém, kết quả có thể không đạt yêu cầu.',
+                                'Tiêu tốn tài nguyên server: OCR process tốn CPU và memory, có thể ảnh hưởng scalability khi số lượng requests OCR tăng cao. Cần queue processing và horizontal scaling để xử lý workload lớn.',
                             ],
                         ],
                     ],
@@ -1384,9 +1461,11 @@ class GenerateEssayFullDocx extends Command
                                 'DRM và bảo vệ bản quyền: Mã hóa PDF, watermarking, hoặc sử dụng các giải pháp DRM chuyên nghiệp để bảo vệ nội dung.',
                                 'Analytics và báo cáo: Xây dựng dashboard cho admin để xem thống kê doanh số, người dùng, sách bán chạy, revenue theo thời gian. Sử dụng Chart.js, D3.js, hoặc các thư viện visualization khác.',
                                 'Social features: Cho phép người dùng follow nhau, share đánh giá lên social media, tạo reading lists, join book clubs.',
-                                'OCR cho PDF scan: Bổ sung nhận diện ký tự quang học (OCR) cho các file PDF không có text layer, sử dụng Tesseract hoặc Google Cloud Vision API.',
-                                'Highlight và annotation trong PDF: Cho phép người dùng đánh dấu đoạn văn bản quan trọng, ghi chú trực tiếp trên PDF.',
-                                'Full-text search trong thư viện: Tìm kiếm trên toàn bộ nội dung văn bản đã trích xuất từ sách đã mua, hỗ trợ nghiên cứu và tham chiếu chéo.',
+                                'Tối ưu hiệu năng Tesseract OCR: Cải thiện tốc độ xử lý OCR thông qua image preprocessing (deskew, denoise, contrast enhancement), parallel processing cho multi-page PDFs, và caching kết quả OCR đã xử lý. Nghiên cứu hardware acceleration (GPU) cho Tesseract.',
+                                'Hybrid OCR approach: Cung cấp tùy chọn cho premium users sử dụng cloud OCR APIs (Google Cloud Vision, AWS Textract) khi cần accuracy cao và tốc độ nhanh, trong khi free users vẫn sử dụng Tesseract. Triển khai cost estimation và user tier system.',
+                                'Cải thiện độ chính xác OCR tiếng Việt: Huấn luyện lại Tesseract model với custom training data từ các tài liệu tiếng Việt phổ biến trong hệ thống. Tích hợp post-processing với Vietnamese spell checker và language model để sửa lỗi OCR.',
+                                'Full-text search trong PDF đã trích xuất: Xây dựng index từ văn bản đã trích xuất (cả parsing và OCR), cho phép người dùng tìm kiếm nội dung trong toàn bộ thư viện sách đã mua. Tích hợp Elasticsearch hoặc Meilisearch cho fast search.',
+                                'Highlight và annotation trong PDF: Cho phép người dùng đánh dấu đoạn văn bản quan trọng, ghi chú trực tiếp trên PDF, lưu annotations vào database và đồng bộ giữa các thiết bị.',
                                 'Audiobooks: Bổ sung hỗ trợ audiobooks, tích hợp audio player.',
                                 'Offline reading: Cho phép download sách và đọc offline, đồng bộ tiến độ đọc khi online.',
                                 'Admin panel nâng cao: Sử dụng Laravel Nova, Filament, hoặc tự xây dựng admin panel với UI/UX tốt hơn, hỗ trợ bulk operations, advanced filters.',
@@ -1408,8 +1487,10 @@ class GenerateEssayFullDocx extends Command
             'Laravel. (2024). Laravel 12 Documentation. Retrieved from https://laravel.com/docs/12.x',
             'Flutter. (2024). Flutter Documentation. Retrieved from https://docs.flutter.dev/',
             'Google. (2024). Material Design 3. Retrieved from https://m3.material.io/',
+            'Google. (2024). Tesseract OCR. Retrieved from https://github.com/tesseract-ocr/tesseract',
             'Laravel. (2024). Laravel Sanctum Documentation. Retrieved from https://laravel.com/docs/12.x/sanctum',
             'Dart. (2024). Dart Language Tour. Retrieved from https://dart.dev/guides/language/language-tour',
+            'Smith, R. (2007). An Overview of the Tesseract OCR Engine. Proceedings of the Ninth International Conference on Document Analysis and Recognition (ICDAR), 2, 629-633. IEEE.',
             'Otwell, T. (2024). Laravel: Up & Running (3rd ed.). O\'Reilly Media.',
             'Wu, E. (2023). Flutter Complete Reference 2023. Self-published.',
             'Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). Design Patterns: Elements of Reusable Object-Oriented Software. Addison-Wesley Professional.',
@@ -1424,12 +1505,7 @@ class GenerateEssayFullDocx extends Command
 
     protected function renderAppendixContent(Section $section): void
     {
-        $this->addHeading($section, 'Phụ lục A: Sơ đồ ERD', 2, false);
-        $this->addParagraph($section, 'Sơ đồ ERD (Entity-Relationship Diagram) minh họa tập thực thể users, authors, categories, books, orders, order_items, wallets, wallet_transactions, wallet_top_up_requests, book_reviews, review_votes và user_books cùng các quan hệ một-nhiều hoặc nhiều-nhiều. Sơ đồ được xây dựng trên cơ sở kiểm kê migrations trong thư mục database/migrations và phản ánh chính xác các khóa ngoại, ràng buộc toàn vẹn tham chiếu.');
-        $this->addParagraph($section, 'Từ sơ đồ ERD có thể suy ra các lộ trình dữ liệu chính như: người dùng sở hữu ví và đơn hàng, đơn hàng bao gồm nhiều sách, sách gắn với nhiều tác giả và thể loại, đánh giá gắn với sách và người dùng, vote liên kết với đánh giá. Sơ đồ chi tiết được đính kèm dưới dạng hình ảnh trong tài liệu đi kèm và có thể được tái tạo bằng công cụ MySQL Workbench hoặc Draw.io.');
-        $section->addTextBreak();
-
-        $this->addHeading($section, 'Phụ lục B: Danh sách API Endpoints', 2, false);
+        $this->addHeading($section, 'Phụ lục A: Danh sách API Endpoints', 2, false);
         $this->addParagraph($section, 'Bảng 1 liệt kê các endpoint chính của REST API phục vụ giao tiếp giữa ứng dụng Flutter và backend Laravel. Tham số phân trang, lọc và tìm kiếm được mô tả chi tiết trong Postman collection đi kèm.');
 
         $table = $section->addTable([
@@ -1457,7 +1533,7 @@ class GenerateEssayFullDocx extends Command
             ['DELETE', '/api/books/{id}', 'Xóa sách khỏi hệ thống (admin)'],
             ['POST', '/api/books/{id}/upload-pdf', 'Upload tệp PDF cho sách (admin)'],
             ['GET', '/api/books/{id}/download-pdf', 'Tải tệp PDF dành cho người đã mua'],
-            ['POST', '/api/books/{id}/extract-text', 'Trích xuất văn bản từ PDF với lựa chọn trang (Sanctum)'],
+            ['POST', '/api/books/{id}/extract-text', 'Trích xuất văn bản từ PDF; method=auto|traditional|ocr, pages tùy chọn, trả về text/method_used/duration_ms (Sanctum)'],
             ['POST', '/api/orders', 'Tạo đơn hàng từ giỏ hàng hiện tại'],
             ['GET', '/api/orders', 'Danh sách đơn hàng của người dùng'],
             ['GET', '/api/orders/{id}', 'Chi tiết đơn hàng và các mục đặt mua'],
@@ -1486,13 +1562,15 @@ class GenerateEssayFullDocx extends Command
         $section->addTextBreak();
         $this->addParagraph($section, 'Danh sách chi tiết hơn (query params, response sample, lỗi phổ biến) được đóng gói trong Postman collection tại thư mục docs/postman của dự án.');
         $section->addTextBreak();
-
-        $this->addHeading($section, 'Phụ lục C: Screenshots giao diện', 2, false);
-        $this->addParagraph($section, 'Phần phụ lục này tổng hợp các hình ảnh minh họa giao diện ứng dụng Flutter ở chế độ light và dark trên cả thiết bị di động và trình duyệt web. Các ảnh bao gồm: màn hình Splash, màn hình Đăng nhập, Trang chủ với grid sách, Trang chi tiết sách, Giỏ hàng, Quy trình thanh toán, Ví điện tử, Lịch sử đơn hàng, Thư viện của tôi, Trang đánh giá, Bảng điều khiển admin, và Màn hình cài đặt với lựa chọn theme và ngôn ngữ.');
-        $this->addParagraph($section, 'Do giới hạn của tài liệu dạng văn bản, hình ảnh được đính kèm riêng trong thư mục docs/screenshots với tên file có quy ước rõ ràng (ví dụ: 01_splash_light.png, 02_login_dark.png).');
+        $this->addParagraph($section, 'Chi tiết endpoint POST /api/books/{id}/extract-text:');
+        $this->addParagraph($section, 'Request body: {"method": "auto|traditional|ocr", "pages": "1,5,10,30-40"} (cả hai tham số đều tùy chọn).');
+        $this->addParagraph($section, 'method: "auto" (default) = tự động phát hiện loại PDF; "traditional" = chỉ dùng parsing; "ocr" = chỉ dùng Tesseract OCR.');
+        $this->addParagraph($section, 'pages: chuỗi định dạng "1,5,10" hoặc "1-10,20-30" để chỉ định trang cụ thể. Bỏ trống = xử lý toàn bộ tài liệu.');
+        $this->addParagraph($section, 'Response: {"success": true, "data": {"text": "...", "total_pages": 250, "extracted_pages": [1,5,10,...], "page_count": 142, "method_used": "traditional", "duration_ms": 3500}}.');
+        $this->addParagraph($section, 'Với method="traditional": thời gian xử lý ~1-2 giây/100 trang. Với method="ocr": thời gian ~10-30 giây/trang tùy độ phức tạp. Endpoint yêu cầu authentication và quyền sở hữu sách.');
         $section->addTextBreak();
 
-        $this->addHeading($section, 'Phụ lục D: Cấu trúc thư mục dự án', 2, false);
+        $this->addHeading($section, 'Phụ lục B: Cấu trúc thư mục dự án', 2, false);
         $this->addParagraph($section, 'Monorepo của My Digital Bookstore được tổ chức theo cấu trúc sau, phản ánh sự tách biệt giữa backend Laravel và frontend Flutter:');
         $section->addText('my_digital_bookstore/', ['name' => 'Courier New', 'size' => 10]);
         $section->addText('├── backend/ (Laravel 12)', ['name' => 'Courier New', 'size' => 10]);
