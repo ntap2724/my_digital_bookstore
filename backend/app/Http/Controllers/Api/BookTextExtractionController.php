@@ -50,7 +50,12 @@ class BookTextExtractionController extends Controller
 
         $validated = $request->validate([
             'pages' => 'nullable|string|max:10000',
+            'method' => 'nullable|string|in:text,ocr,combined',
+            'language' => 'nullable|string|in:eng,vie,eng+vie',
         ]);
+
+        $method = $validated['method'] ?? 'text';
+        $language = $validated['language'] ?? 'eng';
 
         $pdfPath = $book->getPdfPath();
 
@@ -67,7 +72,31 @@ class BookTextExtractionController extends Controller
 
             $pageNumbers = $this->extractor->parsePageSelection($validated['pages'] ?? null, $totalPages);
 
-            $result = $this->extractor->extractFromDocument($document, $pageNumbers);
+            if ($method === 'text') {
+                $result = $this->extractor->extractFromDocument($document, $pageNumbers);
+
+                if ($book->pdf_page_count !== $result['total_pages']) {
+                    $book->pdf_page_count = $result['total_pages'];
+                    $book->save();
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'text' => $result['text'],
+                    'total_pages' => $result['total_pages'],
+                    'extracted_pages' => $result['extracted_pages'],
+                    'page_count' => $result['page_count'],
+                    'method_used' => 'text',
+                    'extraction_details' => [
+                        'embedded_text_pages' => $result['page_count'],
+                        'ocr_pages' => 0,
+                        'failed_pages' => 0,
+                    ],
+                    'processing_time_seconds' => 0,
+                ]);
+            }
+
+            $result = $this->extractor->extractWithMethod($pdfPath, $pageNumbers, $method, $language);
 
             if ($book->pdf_page_count !== $result['total_pages']) {
                 $book->pdf_page_count = $result['total_pages'];
@@ -80,6 +109,9 @@ class BookTextExtractionController extends Controller
                 'total_pages' => $result['total_pages'],
                 'extracted_pages' => $result['extracted_pages'],
                 'page_count' => $result['page_count'],
+                'method_used' => $result['method_used'],
+                'extraction_details' => $result['extraction_details'],
+                'processing_time_seconds' => $result['processing_time_seconds'],
             ]);
         } catch (InvalidArgumentException $exception) {
             return response()->json([

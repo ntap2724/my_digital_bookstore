@@ -40,5 +40,11 @@ return [
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com'),
     ],
 
+    'tesseract' => [
+        'binary' => env('TESSERACT_PATH', '/usr/bin/tesseract'),
+        'languages' => ['eng', 'vie'],
+        'timeout' => env('OCR_TIMEOUT', 120),
+    ],
+
 ];
 
