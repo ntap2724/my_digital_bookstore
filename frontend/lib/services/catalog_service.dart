@@ -660,17 +660,28 @@ class CatalogService {
     return answer;
   }
 
-  Future<ExtractedText> extractText(int bookId, String? pages) async {
+  Future<ExtractedText> extractText({
+    required int bookId,
+    String? pages,
+    String? method,
+    String? language,
+  }) async {
     final payload = <String, dynamic>{};
     final trimmed = pages?.trim();
     if (trimmed != null && trimmed.isNotEmpty) {
       payload['pages'] = trimmed;
     }
+    if (method != null && method.isNotEmpty) {
+      payload['method'] = method;
+    }
+    if (language != null && language.isNotEmpty) {
+      payload['language'] = language;
+    }
 
     try {
       final response = await _client.postJson(
         '/api/books/$bookId/extract-text',
-        body: payload.isEmpty ? null : payload,
+        body: payload,
         auth: true,
       );
       return ExtractedText.fromJson(response);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
 import 'package:my_flutter_app/models/book.dart';
 import 'package:my_flutter_app/models/book_review.dart';
+import 'package:my_flutter_app/models/extraction_options.dart';
 import 'package:my_flutter_app/services/api_client.dart';
 import 'package:my_flutter_app/services/auth_service.dart';
 import 'package:my_flutter_app/services/cart_service.dart';
@@ -9,6 +10,7 @@ import 'package:my_flutter_app/services/catalog_service.dart';
 import 'package:my_flutter_app/services/order_service.dart';
 import 'package:my_flutter_app/text_viewer_screen.dart';
 import 'package:my_flutter_app/widgets/extract_text_dialog.dart';
+import 'package:my_flutter_app/widgets/extraction_progress_dialog.dart';
 import 'package:my_flutter_app/widgets/rating_stars.dart';
 import 'package:my_flutter_app/widgets/responsive_navigation_wrapper.dart';
 
@@ -371,46 +373,34 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Future<void> _handleExtractText(Book book) async {
     if (_extractingText) return;
-    final result = await showExtractTextDialog(context);
-    if (!mounted || result == null) return;
-    final trimmed = result.trim();
-    await _performExtractText(book, trimmed);
+    final options = await showExtractTextDialog(context);
+    if (!mounted || options == null) return;
+    await _performExtractText(book, options);
   }
 
-  Future<void> _performExtractText(Book book, String pages) async {
+  Future<void> _performExtractText(Book book, ExtractionOptions options) async {
     if (_extractingText || !mounted) return;
     final t = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
-    final isAllPages = pages.isEmpty;
-    final loadingMessage =
-        isAllPages ? t.extractingText : t.extractingTextFromPages;
 
     setState(() => _extractingText = true);
 
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          content: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(loadingMessage),
-              ),
-            ],
-          ),
-        ),
+      builder: (dialogContext) => ExtractionProgressDialog(
+        method: options.method,
+        pageCount: book.pdfPageCount ?? 0,
+        pages: options.pagesForApi,
       ),
     );
 
     try {
       final extracted = await _catalogService.extractText(
-        book.id,
-        isAllPages ? null : pages,
+        bookId: book.id,
+        pages: options.pagesForApi,
+        method: options.method.toApiValue(),
+        language: options.languageCode,
       );
       if (!mounted) return;
 
@@ -430,7 +420,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       Navigator.of(context, rootNavigator: true).pop();
       setState(() => _extractingText = false);
       final message = _mapExtractionError(e);
-      _showExtractionErrorDialog(book, pages, message);
+      _showExtractionErrorDialog(book, options, message);
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
@@ -444,23 +434,62 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
   }
 
-  void _showExtractionErrorDialog(Book book, String pages, String message) {
+  void _showExtractionErrorDialog(
+    Book book,
+    ExtractionOptions options,
+    String message,
+  ) {
+    final t = context.l10n;
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(context.l10n.errorExtractingText),
-        content: Text(message),
+        title: Text(t.extractionFailedTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 12),
+            Text(
+              t.extractionSuggestions,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            _buildSuggestion(t.extractionSuggestFewerPages),
+            _buildSuggestion(t.extractionSuggestFastText),
+            _buildSuggestion(t.extractionSuggestCheckConnection),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.l10n.cancel),
+            child: Text(t.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              _performExtractText(book, pages);
+              _performExtractText(book, options);
             },
-            child: Text(context.l10n.retry),
+            child: Text(t.tryAgainButton),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestion(String text) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: theme.textTheme.bodySmall),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall,
+            ),
           ),
         ],
       ),
@@ -472,15 +501,25 @@ class _BookDetailPageState extends State<BookDetailPage> {
     switch (e.statusCode) {
       case 400:
         final message = e.body?['message']?.toString() ?? e.message;
+        if (message.toLowerCase().contains('invalid method')) {
+          return message;
+        }
         return message.isNotEmpty ? message : t.errorInvalidFormat;
       case 403:
         return t.errorNotAuthorized;
       case 404:
         return t.errorBookNotFound;
       case 500:
+        final message = e.body?['message']?.toString() ?? e.message;
+        if (message.toLowerCase().contains('ocr not available')) {
+          return t.ocrNotAvailable;
+        }
+        if (message.toLowerCase().contains('language not supported')) {
+          return t.ocrLanguageNotSupported;
+        }
         return t.errorServerError;
       case 503:
-        return t.errorTimeout;
+        return t.extractionTimedOut;
       default:
         final lower = e.message.toLowerCase();
         if (lower.contains('connect') || lower.contains('network')) {

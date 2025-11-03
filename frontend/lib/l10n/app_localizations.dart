@@ -586,6 +586,52 @@ class AppLocalizations {
   String get errorTimeout => _t('errorTimeout');
   String get errorNetworkConnection => _t('errorNetworkConnection');
   
+  // ---- OCR Extraction ----
+  String get extractionMethod => _t('extractionMethod');
+  String get fastTextExtraction => _t('fastTextExtraction');
+  String get ocrScan => _t('ocrScan');
+  String get smartExtraction => _t('smartExtraction');
+  String get recommended => _t('recommended');
+  String get ocrLanguage => _t('ocrLanguage');
+  String get englishLanguage => _t('englishLanguage');
+  String get vietnameseLanguage => _t('vietnameseLanguage');
+  String get englishVietnamese => _t('englishVietnamese');
+  String get fastTextTooltip => _t('fastTextTooltip');
+  String get ocrTooltip => _t('ocrTooltip');
+  String get smartTooltip => _t('smartTooltip');
+  String get extractingTextProgress => _t('extractingTextProgress');
+  String processingPage(String current, String total) =>
+      _fmt('processingPage', {'current': current, 'total': total});
+  String embeddedTextPages(String count) =>
+      _fmt('embeddedTextPages', {'count': count});
+  String ocrPages(String count) =>
+      _fmt('ocrPages', {'count': count});
+  String remainingPages(String count) =>
+      _fmt('remainingPages', {'count': count});
+  String estimatedTime(String seconds) =>
+      _fmt('estimatedTime', {'seconds': seconds});
+  String get extractionDetails => _t('extractionDetails');
+  String methodUsed(String method) =>
+      _fmt('methodUsed', {'method': method});
+  String processingTime(String time) =>
+      _fmt('processingTime', {'time': time});
+  String textPages(String count) =>
+      _fmt('textPages', {'count': count});
+  String ocrPagesShort(String count) =>
+      _fmt('ocrPagesShort', {'count': count});
+  String get languageForOcr => _t('languageForOcr');
+  String get ocrNotAvailable => _t('ocrNotAvailable');
+  String get ocrLanguageNotSupported => _t('ocrLanguageNotSupported');
+  String get extractionTimedOut => _t('extractionTimedOut');
+  String get extractionFailedTitle => _t('extractionFailedTitle');
+  String get extractionSuggestions => _t('extractionSuggestions');
+  String get extractionSuggestFewerPages => _t('extractionSuggestFewerPages');
+  String get extractionSuggestFastText => _t('extractionSuggestFastText');
+  String get extractionSuggestCheckConnection => _t('extractionSuggestCheckConnection');
+  String get tryAgainButton => _t('tryAgainButton');
+  String get almostDone => _t('almostDone');
+  String get pages => _t('pages');
+  
   // ---- Error texts ----
   String get errorLoadingInfo => _t('errorLoadingInfo');
 }
