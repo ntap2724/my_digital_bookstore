@@ -389,8 +389,8 @@ class GenerateEssayFullDocx extends Command
     {
         return [
             'Trong bối cảnh chuyển đổi số và sự phát triển mạnh mẽ của thương mại điện tử, nhu cầu tiếp cận sách điện tử ngày càng gia tăng. Bài tiểu luận này trình bày quá trình phân tích, thiết kế và triển khai hệ thống Hiệu sách điện tử trực tuyến (My Digital Bookstore), một nền tảng thương mại điện tử toàn diện cho phép người dùng khám phá, mua sắm và quản lý thư viện sách số cá nhân. Hệ thống được xây dựng dựa trên kiến trúc client-server hiện đại, với backend sử dụng Laravel Framework phiên bản 12 (PHP 8.2) kết hợp cơ chế xác thực Sanctum và REST API, cùng frontend được phát triển bằng Flutter Framework phiên bản 3 hỗ trợ Material Design 3, cho phép triển khai đa nền tảng trên di động, web và desktop.',
-            'Hệ thống tích hợp đầy đủ các chức năng quản lý danh mục sách, tác giả, thể loại, hệ thống đơn hàng, ví điện tử, trích xuất văn bản từ PDF (hỗ trợ cả PDF text-based và image-based với Tesseract OCR), đánh giá và bình luận. Phần backend triển khai các controller RESTful, models Eloquent, migrations cơ sở dữ liệu và feature tests với PHPUnit, trong khi frontend áp dụng kiến trúc singleton services để quản lý trạng thái và giao tiếp API thông qua HTTP client. Người dùng có thể đăng ký, đăng nhập, duyệt danh mục, xem chi tiết sách, đọc PDF trực tuyến, trích xuất văn bản từ các trang PDF đã mua (bao gồm PDF scan nhờ Tesseract OCR), thêm vào giỏ hàng, thanh toán qua ví điện tử, theo dõi lịch sử đơn hàng, quản lý thư viện cá nhân, và tham gia đánh giá sách. Hệ thống cũng cung cấp giao diện quản trị cho admin để quản lý người dùng, sách, tác giả, danh mục, đơn hàng, yêu cầu nạp tiền và điều chỉnh ví. Kết quả kiểm thử cho thấy hệ thống hoạt động ổn định, đáp ứng yêu cầu chức năng và phi chức năng, tạo nền tảng vững chắc cho việc mở rộng và phát triển các tính năng nâng cao trong tương lai.',
-            'Bài viết đánh giá sâu hiệu năng giữa cơ chế parsing truyền thống và pipeline OCR với Tesseract, mô tả chiến lược phát hiện loại PDF tự động, cơ chế xử lý bất đồng bộ bằng queue jobs và các biện pháp đảm bảo chất lượng như kiểm thử end-to-end, theo dõi hiệu năng và quản trị vận hành. Các kết quả cho thấy giải pháp Tesseract chạy hoàn toàn tại chỗ, không phát sinh chi phí bản quyền nhưng đòi hỏi tối ưu tài nguyên và thời gian xử lý, qua đó đưa ra các khuyến nghị cải tiến trong tương lai.'
+            'Hệ thống tích hợp đầy đủ các chức năng quản lý danh mục sách, tác giả, thể loại, hệ thống đơn hàng, ví điện tử, trích xuất văn bản từ PDF (hỗ trợ cả PDF text-based và image-based với Tesseract OCR), đánh giá và bình luận. Phần backend triển khai các controller RESTful, models Eloquent, migrations cơ sở dữ liệu và tính năng tests với PHPUnit, trong khi frontend áp dụng kiến trúc singleton services để quản lý trạng thái và giao tiếp API thông qua HTTP client. Người dùng có thể đăng ký, đăng nhập, duyệt danh mục, xem chi tiết sách, đọc PDF trực tuyến, trích xuất văn bản từ các trang PDF đã mua (bao gồm PDF scan nhờ Tesseract OCR), thêm vào giỏ hàng, thanh toán qua ví điện tử, theo dõi lịch sử đơn hàng, quản lý thư viện cá nhân, và tham gia đánh giá sách. Hệ thống cũng cung cấp giao diện quản trị cho admin để quản lý người dùng, sách, tác giả, danh mục, đơn hàng, yêu cầu nạp tiền và điều chỉnh ví. Kết quả kiểm thử cho thấy hệ thống hoạt động ổn định, đáp ứng yêu cầu chức năng và phi chức năng, tạo nền tảng vững chắc cho việc mở rộng và phát triển các tính năng nâng cao trong tương lai.',
+            'Bài viết đánh giá sâu hiệu năng giữa cơ chế phân tích cú pháp truyền thống và pipeline OCR với Tesseract, mô tả chiến lược phát hiện loại PDF tự động, cơ chế xử lý bất đồng bộ bằng queue jobs và các biện pháp đảm bảo chất lượng như kiểm thử end-to-end, theo dõi hiệu năng và quản trị vận hành. Các kết quả cho thấy giải pháp Tesseract chạy hoàn toàn tại chỗ, không phát sinh chi phí bản quyền nhưng đòi hỏi tối ưu tài nguyên và thời gian xử lý, qua đó đưa ra các khuyến nghị cải tiến trong tương lai.'
         ];
     }
 
@@ -428,7 +428,7 @@ class GenerateEssayFullDocx extends Command
                                 'Triển khai chức năng quản lý file PDF cho sách điện tử, bao gồm upload, lưu trữ an toàn, và download có xác thực để bảo vệ bản quyền.',
                                 'Xây dựng hệ thống ví điện tử cho phép người dùng nạp tiền, thanh toán đơn hàng, theo dõi lịch sử giao dịch, và admin có thể xử lý yêu cầu nạp tiền cũng như điều chỉnh số dư.',
                                 'Phát triển tính năng đánh giá và bình luận với hệ thống vote (upvote/downvote) để người dùng có thể chia sẻ ý kiến và đánh giá chất lượng sách.',
-                                'Viết unit tests và feature tests sử dụng PHPUnit để đảm bảo chất lượng mã nguồn và độ tin cậy của hệ thống.',
+                                'Viết unit tests và tính năng tests sử dụng PHPUnit để đảm bảo chất lượng mã nguồn và độ tin cậy của hệ thống.',
                                 'Tạo seeders để sinh dữ liệu mẫu phục vụ việc phát triển và kiểm thử.',
                                 'Xây dựng Postman collection để tài liệu hóa và kiểm thử các API endpoints một cách trực quan.',
                             ],
@@ -446,7 +446,7 @@ class GenerateEssayFullDocx extends Command
                                 'Chức năng danh mục: Xem danh sách sách với phân trang, tìm kiếm theo tên, lọc theo tác giả và thể loại, sắp xếp theo giá hoặc ngày xuất bản, xem chi tiết sách bao gồm mô tả, giá, tác giả, thể loại, đánh giá trung bình, số lượng bản sao còn lại.',
                                 'Chức năng mua sắm: Thêm sách vào giỏ hàng, xem giỏ hàng, cập nhật số lượng, xóa sản phẩm, thanh toán bằng ví điện tử, xem lịch sử đơn hàng, hủy đơn hàng chưa hoàn thành.',
                                 'Chức năng ví điện tử: Xem số dư ví, tạo yêu cầu nạp tiền, xem lịch sử giao dịch nạp tiền và thanh toán.',
-                                'Chức năng đọc sách: Xem danh sách sách đã mua trong thư viện cá nhân, tải xuống và đọc file PDF trực tuyến thông qua trình đọc tích hợp, trích xuất văn bản từ PDF với lựa chọn trang cụ thể. Hệ thống hỗ trợ cả PDF text-based (parsing truyền thống với smalot/pdfparser) và PDF image-based (scan) thông qua Tesseract OCR, tự động phát hiện loại PDF và lựa chọn phương pháp trích xuất phù hợp.',
+                                'Chức năng đọc sách: Xem danh sách sách đã mua trong thư viện cá nhân, tải xuống và đọc file PDF trực tuyến thông qua trình đọc tích hợp, trích xuất văn bản từ PDF với lựa chọn trang cụ thể. Hệ thống hỗ trợ cả PDF text-based (phân tích cú pháp truyền thống với smalot/pdfparser) và PDF image-based (scan) thông qua Tesseract OCR, tự động phát hiện loại PDF và lựa chọn phương pháp trích xuất phù hợp.',
                                 'Chức năng đánh giá: Viết đánh giá và bình luận cho sách đã mua, chấm điểm (rating), sửa hoặc xóa đánh giá của mình, vote (upvote/downvote) cho đánh giá của người khác.',
                                 'Chức năng quản trị: Admin có thể quản lý người dùng (xem danh sách, cập nhật vai trò, vô hiệu hóa tài khoản), quản lý sách (thêm, sửa, xóa, upload PDF), quản lý tác giả và thể loại (CRUD), xử lý yêu cầu nạp tiền (chấp nhận/từ chối), điều chỉnh số dư ví người dùng.',
                                 'Chức năng đa ngôn ngữ và giao diện: Hỗ trợ tiếng Anh và tiếng Việt, chế độ sáng/tối (light/dark theme), tùy chỉnh cỡ chữ và font chữ.',
@@ -468,7 +468,7 @@ class GenerateEssayFullDocx extends Command
                                 'Giai đoạn 2 - Thiết kế hệ thống: Thiết kế kiến trúc tổng thể (client-server, RESTful API), thiết kế cơ sở dữ liệu (mô hình ERD, bảng, mối quan hệ, ràng buộc), thiết kế API endpoints (authentication, resources, admin), thiết kế giao diện người dùng (wireframes, mockups), lựa chọn công nghệ (Laravel 12, Flutter 3, MySQL/PostgreSQL, Sanctum, Material Design 3).',
                                 'Giai đoạn 3 - Triển khai backend: Khởi tạo dự án Laravel, tạo migrations và models, triển khai authentication với Sanctum, phát triển controllers và routes, xây dựng logic nghiệp vụ (order, wallet, review), tích hợp upload và download PDF, viết seeders và factories.',
                                 'Giai đoạn 4 - Triển khai frontend: Khởi tạo dự án Flutter, xây dựng singleton services (AuthService, CatalogService, CartService, WalletService, OrderService, LibraryService), phát triển UI screens (splash, auth, home, book detail, cart, checkout, wallet, orders, my books, profile, settings, admin), tích hợp HTTP client (dio/http), triển khai navigation và routing, thêm internationalization (EN/VI), quản lý theme (light/dark), tích hợp PDF reader.',
-                                'Giai đoạn 5 - Kiểm thử: Viết unit tests và feature tests cho backend (PHPUnit), kiểm thử API với Postman, kiểm thử UI thủ công trên các nền tảng (iOS, Android, web, desktop), kiểm thử tích hợp end-to-end (đăng ký → duyệt → mua → đọc → đánh giá), kiểm thử hiệu năng (response time, database queries).',
+                                'Giai đoạn 5 - Kiểm thử: Viết unit tests và tính năng tests cho backend (PHPUnit), kiểm thử API với Postman, kiểm thử UI thủ công trên các nền tảng (iOS, Android, web, desktop), kiểm thử tích hợp end-to-end (đăng ký → duyệt → mua → đọc → đánh giá), kiểm thử hiệu năng (response time, database queries).',
                                 'Giai đoạn 6 - Đánh giá và hoàn thiện: Tổng hợp kết quả kiểm thử, sửa lỗi và cải tiến, viết tài liệu hướng dẫn sử dụng và triển khai, chuẩn bị báo cáo và trình bày.',
                             ],
                         ],
@@ -539,14 +539,14 @@ class GenerateEssayFullDocx extends Command
                         ],
                         'lists' => [
                             [
-                                'Eloquent ORM: Một Active Record implementation cho phép tương tác với cơ sở dữ liệu thông qua các model PHP, hỗ trợ relationships (one-to-one, one-to-many, many-to-many), query builder mạnh mẽ, và eager loading để tối ưu hiệu năng.',
+                                'Eloquent ORM: Một Active Record triển khai cho phép tương tác với cơ sở dữ liệu thông qua các model PHP, hỗ trợ relationships (one-to-one, one-to-many, many-to-many), query builder mạnh mẽ, và eager loading để tối ưu hiệu năng.',
                                 'Routing: Hệ thống routing linh hoạt, hỗ trợ RESTful resource controllers, route groups, middleware, và route model binding.',
                                 'Migrations: Quản lý cấu trúc cơ sở dữ liệu thông qua mã PHP, cho phép version control và đồng bộ schema giữa các môi trường.',
                                 'Seeders và Factories: Tạo dữ liệu mẫu để phát triển và kiểm thử.',
-                                'Validation: Hệ thống validation mạnh mẽ, hỗ trợ nhiều rules và có thể tùy chỉnh.',
+                                'Xác thực: Hệ thống xác thực mạnh mẽ, hỗ trợ nhiều rules và có thể tùy chỉnh.',
                                 'Authentication và Authorization: Tích hợp sẵn hệ thống xác thực và phân quyền, dễ dàng mở rộng với các packages như Sanctum (cho API token), Passport (OAuth2).',
                                 'Queue và Jobs: Xử lý các tác vụ nền bất đồng bộ.',
-                                'Testing: Tích hợp PHPUnit, hỗ trợ viết unit tests và feature tests.',
+                                'Testing: Tích hợp PHPUnit, hỗ trợ viết unit tests và tính năng tests.',
                                 'Vite: Từ Laravel 9 trở đi, Vite được sử dụng thay cho Laravel Mix để build assets (JavaScript, CSS), mang lại tốc độ build nhanh hơn và trải nghiệm hot module replacement tốt hơn.',
                             ],
                         ],
@@ -566,7 +566,7 @@ class GenerateEssayFullDocx extends Command
                                 'Widget Tree: Mọi thứ trong Flutter đều là widget. Giao diện được xây dựng bằng cách kết hợp các widgets lại với nhau thành một cây (tree). Có hai loại widget chính: StatelessWidget (không thay đổi trạng thái) và StatefulWidget (có thể thay đổi trạng thái).',
                                 'Hot Reload: Cho phép xem ngay kết quả thay đổi mã nguồn mà không cần compile lại toàn bộ ứng dụng, giúp tăng tốc độ phát triển.',
                                 'Material Design và Cupertino: Flutter cung cấp bộ widgets Material Design (cho Android) và Cupertino (cho iOS), giúp tạo ra giao diện native-like trên cả hai nền tảng.',
-                                'Material Design 3: Phiên bản mới nhất của Material Design, mang đến giao diện hiện đại, hỗ trợ dynamic color, improved theming, và các components mới.',
+                                'Material Design 3: Phiên bản mới nhất của Material Design, mang đến giao diện hiện đại, hỗ trợ dynamic color, được cải thiện theming, và các components mới.',
                                 'Rendering Engine: Flutter sử dụng Skia graphics engine để render giao diện, đảm bảo hiệu năng cao và giao diện nhất quán trên các nền tảng.',
                                 'Packages và Plugins: Hệ sinh thái phong phú với hàng ngàn packages trên pub.dev, bao gồm http/dio (HTTP client), shared_preferences (local storage), flutter_pdfview (PDF reader), provider/riverpod/bloc (state management).',
                             ],
@@ -595,10 +595,10 @@ class GenerateEssayFullDocx extends Command
                         'lists' => [
                             [
                                 'Các text object (BT/ET, Tj, TJ) chứa lệnh vẽ ký tự theo font và vị trí cụ thể.',
-                                'Font dictionary định nghĩa bộ font, encoding và thông tin glyph mapping.',
+                                'Font dictionary định nghĩa bộ font, mã hóa và thông tin glyph mapping.',
                                 'Content stream mô tả lệnh vẽ trang, bao gồm text, vector và hình ảnh.',
                                 'Resource dictionary quản lý tham chiếu tới font, hình ảnh, pattern phục vụ render.',
-                                'Metadata, outlines và logical structure tree giúp xác định mục lục, heading, bookmarks.',
+                                'Metadata, outlines và logical cấu trúc tree giúp xác định mục lục, heading, bookmarks.',
                             ],
                         ],
                         'paragraphs' => [
@@ -606,7 +606,7 @@ class GenerateEssayFullDocx extends Command
                         ],
                         'lists' => [
                             [
-                                'Phân tích cú pháp (PDF parsing): Đọc trực tiếp các content stream, giải mã encoding, chuyển đổi glyph thành ký tự văn bản. Cách tiếp cận này giữ nguyên độ chính xác khi tài liệu có text layer rõ ràng. Trong My Digital Bookstore, thư viện smalot/pdfparser (PHP) được sử dụng cho phương pháp này.',
+                                'Phân tích cú pháp PDF: Đọc trực tiếp các content stream, giải mã mã hóa, chuyển đổi glyph thành ký tự văn bản. Cách tiếp cận này giữ nguyên độ chính xác khi tài liệu có text layer rõ ràng. Trong My Digital Bookstore, thư viện smalot/pdfparser (PHP) được sử dụng cho phương pháp này.',
                                 'Nhận diện ký tự quang học (Optical Character Recognition - OCR): Sử dụng machine learning để nhận dạng ký tự từ hình ảnh raster. Phương pháp này thích hợp với PDF scan không có text layer nhưng yêu cầu chi phí tính toán lớn. My Digital Bookstore triển khai OCR bằng Tesseract OCR engine.',
                             ],
                         ],
@@ -616,16 +616,16 @@ class GenerateEssayFullDocx extends Command
                                 'level' => 3,
                                 'paragraphs' => [
                                     'Tesseract là một trong những OCR engine mã nguồn mở tốt nhất hiện nay, ban đầu được phát triển bởi HP Labs từ năm 1985-1995, sau đó được Google tiếp quản và phát triển từ năm 2006. Tesseract hỗ trợ nhận dạng hơn 100 ngôn ngữ bao gồm tiếng Việt, sử dụng các mô hình machine learning (LSTM neural networks) để cải thiện độ chính xác.',
-                                    'Trong hệ thống My Digital Bookstore, Tesseract được tích hợp để xử lý các PDF scan hoặc PDF image-based không có text layer có thể trích xuất bằng phương pháp parsing truyền thống. Quy trình xử lý bao gồm:',
+                                    'Trong hệ thống My Digital Bookstore, Tesseract được tích hợp để xử lý các PDF scan hoặc PDF image-based không có text layer có thể trích xuất bằng phương pháp phân tích cú pháp truyền thống. Quy trình xử lý bao gồm:',
                                 ],
                                 'lists' => [
                                     [
-                                        'Bước 1 - Phát hiện loại PDF: Hệ thống tự động phát hiện PDF có text layer hay không bằng cách thử parsing với smalot/pdfparser. Nếu parsing trả về ít hoặc không có văn bản, hệ thống chuyển sang phương pháp OCR.',
+                                        'Bước 1 - Phát hiện loại PDF: Hệ thống tự động phát hiện PDF có text layer hay không bằng cách thử phân tích cú pháp với smalot/pdfparser. Nếu phân tích cú pháp trả về ít hoặc không có văn bản, hệ thống chuyển sang phương pháp OCR.',
                                         'Bước 2 - Chuyển đổi PDF sang hình ảnh: Sử dụng thư viện spatie/pdf-to-image (dựa trên Imagick) để chuyển từng trang PDF thành hình ảnh PNG/JPG với độ phân giải 300 DPI để đảm bảo chất lượng OCR.',
                                         'Bước 3 - Tiền xử lý hình ảnh: Áp dụng các kỹ thuật như grayscale conversion, noise reduction, contrast enhancement để cải thiện chất lượng đầu vào cho Tesseract.',
                                         'Bước 4 - Nhận dạng OCR: Gọi Tesseract qua thư viện thiagoalessio/tesseract_ocr (PHP wrapper) với cấu hình ngôn ngữ (vie+eng) và PSM (Page Segmentation Mode) phù hợp.',
                                         'Bước 5 - Hậu xử lý văn bản: Làm sạch kết quả OCR, loại bỏ ký tự lỗi, ghép nối các đoạn văn bản từ nhiều trang.',
-                                        'Bước 6 - Queue processing: Do OCR tốn thời gian (10-30 giây/trang), các tác vụ OCR được đưa vào queue jobs để xử lý bất đồng bộ, tránh timeout cho người dùng.',
+                                        'Bước 6 - Xử lý hàng đợi: Do OCR tốn thời gian (10-30 giây/trang), các tác vụ OCR được đưa vào queue jobs để xử lý bất đồng bộ, tránh timeout cho người dùng.',
                                     ],
                                 ],
                             ],
@@ -651,10 +651,10 @@ class GenerateEssayFullDocx extends Command
                                 'lists' => [
                                     [
                                         'Tốc độ xử lý chậm: Tesseract xử lý khoảng 10-30 giây/trang (tùy độ phức tạp), chậm hơn đáng kể so với cloud API như Google Cloud Vision (~1-2 giây/trang) hay AWS Textract.',
-                                        'Tiêu tốn tài nguyên server: OCR process tốn CPU và memory (100-200MB/request), có thể ảnh hưởng đến các dịch vụ khác trên cùng server khi xử lý nhiều request đồng thời.',
-                                        'Độ chính xác thấp hơn với ảnh kém chất lượng: Tesseract hoạt động tốt với ảnh scan rõ nét (300+ DPI) nhưng gặp khó khăn với ảnh mờ, nghiêng, nhiễu, ánh sáng kém. Cloud API thường có accuracy cao hơn nhờ mô hình AI tiên tiến.',
+                                        'Tiêu tốn tài nguyên server: OCR xử lý tốn CPU và memory (100-200MB/request), có thể ảnh hưởng đến các dịch vụ khác trên cùng server khi xử lý nhiều request đồng thời.',
+                                        'Độ chính xác thấp hơn với ảnh kém chất lượng: Tesseract hoạt động tốt với ảnh scan rõ nét (300+ DPI) nhưng gặp khó khăn với ảnh mờ, nghiêng, nhiễu, ánh sáng kém. Cloud API thường có độ chính xác cao hơn nhờ mô hình AI tiên tiến.',
                                         'Cần cài đặt và cấu hình: Phải cài Tesseract binary và trained data trên server, cần kiến thức system admin. Cloud API chỉ cần API key.',
-                                        'Khó scale cho workload lớn: Khi lượng PDF tăng cao, cần nhiều server workers hoặc chuyển sang cloud API để tránh bottleneck. Horizontal scaling Tesseract phức tạp hơn so với pay-per-use cloud services.',
+                                        'Khó mở rộng cho workload lớn: Khi lượng PDF tăng cao, cần nhiều server workers hoặc chuyển sang cloud API để tránh bottleneck. Horizontal mở rộng Tesseract phức tạp hơn so với pay-per-use cloud services.',
                                     ],
                                 ],
                             ],
@@ -667,8 +667,8 @@ class GenerateEssayFullDocx extends Command
                                     'Tốc độ: Tesseract 10-30s/page, Cloud APIs 1-2s/page. Khi cần real-time OCR, cloud APIs vượt trội.',
                                     'Độ chính xác: Tesseract 85-95% (tùy chất lượng ảnh), Cloud APIs 95-99%. Với tài liệu quan trọng, cloud APIs đáng tin cậy hơn.',
                                     'Bảo mật: Tesseract xử lý local (100% private), Cloud APIs upload dữ liệu lên internet (phụ thuộc trust model). Với dữ liệu nhạy cảm, Tesseract an toàn hơn.',
-                                    'Khả năng mở rộng: Tesseract cần scale server manually, Cloud APIs auto-scale unlimited. Với growth nhanh, cloud APIs dễ hơn.',
-                                    'Kết luận: Tesseract phù hợp cho MVP, small-medium workload, dữ liệu nhạy cảm, budget hạn chế. Cloud APIs phù hợp cho production scale lớn, cần accuracy cao, real-time processing.',
+                                    'Khả năng mở rộng: Tesseract cần mở rộng server thủ công, Cloud APIs auto-scale unlimited. Với growth nhanh, cloud APIs dễ hơn.',
+                                    'Kết luận: Tesseract phù hợp cho MVP, small-medium workload, dữ liệu nhạy cảm, budget hạn chế. Cloud APIs phù hợp cho production mở rộng lớn, cần độ chính xác cao, real-time xử lý.',
                                 ],
                             ],
                         ],
@@ -677,12 +677,12 @@ class GenerateEssayFullDocx extends Command
                         ],
                         'lists' => [
                             [
-                                'Encoding phức tạp: Một số PDF sử dụng custom encoding hoặc glyph substitution khiến việc map ký tự trở nên khó khăn.',
+                                'Mã hóa phức tạp: Một số PDF sử dụng mã hóa tùy chỉnh hoặc glyph substitution khiến việc map ký tự trở nên khó khăn.',
                                 'Font nhúng đặc biệt: Các embedded font subset có thể thiếu thông tin mapping chuẩn, đòi hỏi fallback hoặc bảng tra cứu bổ sung.',
                                 'Bố cục nhiều cột và ngôn ngữ đa chiều (Right-to-Left) yêu cầu logic hậu xử lý để sắp xếp lại thứ tự đọc.',
-                                'Lựa chọn trang: Cần cơ chế parse input, loại bỏ trùng lặp, giới hạn số trang và đảm bảo thứ tự tăng dần trước khi tiến hành parsing.',
+                                'Lựa chọn trang: Cần cơ chế phân tích input, loại bỏ trùng lặp, giới hạn số trang và đảm bảo thứ tự tăng dần trước khi tiến hành phân tích cú pháp.',
                                 'Hiệu năng và bảo mật: File PDF dung lượng lớn hoặc có cấu trúc lỗi có thể gây DoS, do đó cần giới hạn số trang trích xuất và xử lý ngoại lệ.',
-                                'Chất lượng OCR: Ảnh scan kém chất lượng, nghiêng, nhiễu ảnh hưởng trực tiếp đến accuracy. Cần tiền xử lý hình ảnh (deskew, denoise) và cho phép người dùng re-try với cấu hình khác.',
+                                'Chất lượng OCR: Ảnh scan kém chất lượng, nghiêng, nhiễu ảnh hưởng trực tiếp đến độ chính xác. Cần tiền xử lý hình ảnh (deskew, denoise) và cho phép người dùng re-try với cấu hình khác.',
                             ],
                         ],
                         'paragraphs' => [
@@ -784,10 +784,10 @@ class GenerateEssayFullDocx extends Command
                         'lists' => [
                             [
                                 'NFR1 - Bảo mật: Mật khẩu người dùng phải được hash bằng bcrypt trước khi lưu trữ. Token xác thực phải có thời gian sống hợp lý và có thể revoke. API endpoints phải được bảo vệ bằng middleware xác thực. File PDF chỉ có thể download bởi người dùng đã mua sách.',
-                                'NFR2 - Hiệu năng: Thời gian response của API không quá 200ms cho các truy vấn đơn giản, không quá 1s cho các truy vấn phức tạp. Ứng dụng Flutter khởi động không quá 3 giây. Sử dụng pagination để giảm tải khi hiển thị danh sách dài. Sử dụng eager loading và query optimization để tránh N+1 queries.',
+                                'NFR2 - Hiệu năng: Thời gian response của API không quá 200ms cho các truy vấn đơn giản, không quá 1s cho các truy vấn phức tạp. Ứng dụng Flutter khởi động không quá 3 giây. Sử dụng pagination để giảm tải khi hiển thị danh sách dài. Sử dụng eager loading và query tối ưu để tránh N+1 queries.',
                                 'NFR3 - Khả năng sử dụng: Giao diện người dùng phải trực quan, dễ hiểu, tuân theo Material Design 3 guidelines. Hỗ trợ đa ngôn ngữ (EN/VI). Hỗ trợ light/dark theme. Responsive design cho các kích thước màn hình khác nhau.',
-                                'NFR4 - Khả năng mở rộng: Kiến trúc hệ thống phải module hóa, dễ thêm chức năng mới. Backend API phải stateless, có thể scale horizontally. Cơ sở dữ liệu phải được thiết kế với indexes hợp lý để hỗ trợ tăng trưởng dữ liệu.',
-                                'NFR5 - Khả năng bảo trì: Mã nguồn phải tuân theo coding conventions, có comments và documentation đầy đủ. Sử dụng version control (Git). Có unit tests và feature tests để đảm bảo chất lượng mã nguồn.',
+                                'NFR4 - Khả năng mở rộng: Kiến trúc hệ thống phải module hóa, dễ thêm chức năng mới. Backend API phải stateless, có thể mở rộng horizontally. Cơ sở dữ liệu phải được thiết kế với indexes hợp lý để hỗ trợ tăng trưởng dữ liệu.',
+                                'NFR5 - Khả năng bảo trì: Mã nguồn phải tuân theo coding conventions, có comments và documentation đầy đủ. Sử dụng version control (Git). Có unit tests và tính năng tests để đảm bảo chất lượng mã nguồn.',
                                 'NFR6 - Tương thích: Ứng dụng Flutter phải hoạt động trên iOS 12+, Android 6+, các trình duyệt web hiện đại (Chrome, Firefox, Safari, Edge), Windows 10+, macOS 10.15+, Linux (Ubuntu 20.04+).',
                             ],
                         ],
@@ -825,7 +825,7 @@ class GenerateEssayFullDocx extends Command
                         ],
                         'paragraphs' => [
                             'Hệ thống được tổ chức trong một monorepo (kho chứa mã nguồn duy nhất) với hai thư mục chính: backend (Laravel) và frontend (Flutter). Việc sử dụng monorepo giúp dễ dàng quản lý version, chia sẻ tài liệu và quy trình CI/CD.',
-                            'Giao tiếp giữa frontend và backend thông qua RESTful API qua HTTP/HTTPS. Frontend gửi requests với token xác thực trong header, backend kiểm tra token, xử lý request, truy vấn database, và trả về JSON response. Frontend parse JSON và cập nhật UI.',
+                            'Giao tiếp giữa frontend và backend thông qua RESTful API qua HTTP/HTTPS. Frontend gửi requests với token xác thực trong header, backend kiểm tra token, xử lý request, truy vấn database, và trả về JSON response. Frontend phân tích JSON và cập nhật UI.',
                         ],
                     ],
                     [
@@ -1024,7 +1024,7 @@ class GenerateEssayFullDocx extends Command
                                         'database/seeders: Chứa các seeder classes để sinh dữ liệu mẫu.',
                                         'database/factories: Chứa các factory classes để tạo model instances giả.',
                                         'routes/api.php: Định nghĩa các API routes.',
-                                        'tests/Feature: Chứa các feature tests.',
+                                        'tests/Feature: Chứa các tính năng tests.',
                                         'storage/app: Chứa các files upload (PDFs).',
                                     ],
                                 ],
@@ -1044,23 +1044,23 @@ class GenerateEssayFullDocx extends Command
                                 'paragraphs' => [
                                     'Laravel Sanctum được cấu hình để cung cấp token-based authentication. AuthController xử lý register, login, logout, và me endpoints. Khi register hoặc login thành công, server tạo một token bằng $user->createToken("token-name")->plainTextToken và trả về cho client. Client lưu token này và gửi kèm trong header Authorization: Bearer {token} cho các requests tiếp theo.',
                                     'Middleware auth:sanctum được áp dụng cho các routes cần xác thực. Sanctum tự động kiểm tra token, tìm user tương ứng, và inject vào request. Nếu token không hợp lệ hoặc không tồn tại, middleware trả về 401 Unauthorized.',
-                                    'Middleware custom CheckAdmin được tạo để kiểm tra user có role là "admin" hay không. Middleware này được áp dụng cho các routes admin-only.',
+                                    'Middleware tùy chỉnh CheckAdmin được tạo để kiểm tra user có role là "admin" hay không. Middleware này được áp dụng cho các routes admin-only.',
                                 ],
                             ],
                             [
                                 'title' => 'Controllers và Routes',
                                 'level' => 3,
                                 'paragraphs' => [
-                                    'Controllers được tổ chức theo resource pattern. Mỗi resource (Book, Author, Category, Order, etc.) có một controller chứa các methods: index (list), show (detail), store (create), update (update), destroy (delete). Controllers sử dụng Request validation để validate input, sử dụng Eloquent để truy vấn database, và trả về JSON responses.',
+                                    'Controllers được tổ chức theo resource pattern. Mỗi resource (Book, Author, Category, Order, etc.) có một controller chứa các methods: index (list), show (detail), store (create), update (update), destroy (delete). Controllers sử dụng Request xác thực để xác thực input, sử dụng Eloquent để truy vấn database, và trả về JSON responses.',
                                     'Routes được định nghĩa trong routes/api.php, sử dụng Route::apiResource() để tự động tạo RESTful routes. Routes được nhóm theo middleware (auth:sanctum, admin) để áp dụng xác thực và phân quyền.',
-                                    'Ví dụ, BookController::index() nhận query parameters (search, author_id, category_id, sort), xây dựng query với Eloquent, áp dụng filters và sorting, sử dụng paginate() để phân trang, và trả về JSON chứa books và pagination meta. BookController::store() validate input, tạo Book instance, lưu vào database, đồng bộ relationships (authors, categories), và trả về book vừa tạo.',
+                                    'Ví dụ, BookController::index() nhận query parameters (search, author_id, category_id, sort), xây dựng query với Eloquent, áp dụng filters và sorting, sử dụng paginate() để phân trang, và trả về JSON chứa books và pagination meta. BookController::store() xác thực input, tạo Book instance, lưu vào database, đồng bộ relationships (authors, categories), và trả về book vừa tạo.',
                                 ],
                             ],
                             [
                                 'title' => 'Quản lý file PDF',
                                 'level' => 3,
                                 'paragraphs' => [
-                                    'File PDF của sách được upload thông qua endpoint POST /api/books/{id}/upload-pdf (admin only). Controller nhận file từ request, validate (phải là PDF, kích thước tối đa 50MB), lưu vào storage/app/pdfs bằng Storage::putFileAs(), và cập nhật pdf_path của Book model.',
+                                    'File PDF của sách được upload thông qua endpoint POST /api/books/{id}/upload-pdf (admin only). Controller nhận file từ request, xác thực (phải là PDF, kích thước tối đa 50MB), lưu vào storage/app/pdfs bằng Storage::putFileAs(), và cập nhật pdf_path của Book model.',
                                     'Endpoint GET /api/books/{id}/download-pdf (authenticated users) cho phép download PDF. Trước khi trả về file, controller kiểm tra user đã mua sách hay chưa bằng cách query bảng user_books. Nếu đã mua, trả về file bằng Storage::download(). Nếu chưa mua, trả về 403 Forbidden. Cơ chế này đảm bảo bảo vệ bản quyền.',
                                 ],
                             ],
@@ -1068,13 +1068,13 @@ class GenerateEssayFullDocx extends Command
                                 'title' => 'Trích xuất văn bản PDF',
                                 'level' => 3,
                                 'paragraphs' => [
-                                    'Tính năng trích xuất văn bản được thiết kế nhằm hỗ trợ người đọc khai thác nội dung sách phục vụ học tập và nghiên cứu mà không phá vỡ bảo vệ bản quyền. Hệ thống bổ sung gói thư viện smalot/pdfparser thông qua lệnh composer require smalot/pdfparser, cho phép Laravel phân tích cấu trúc text layer của file PDF đã lưu trong storage.',
+                                    'Tính năng trích xuất văn bản được thiết kế nhằm hỗ trợ người đọc khai thác nội dung sách phục vụ học tập và nghiên cứu mà không phá vỡ bảo vệ bản quyền. Hệ thống bổ sung gói thư viện smalot/pdfparser thông qua lệnh composer yêu cầu smalot/pdfparser, cho phép Laravel phân tích cấu trúc text layer của file PDF đã lưu trong storage.',
                                     'Một service chuyên trách App\\Services\\PdfTextExtractor được triển khai để tách biệt logic xử lý PDF khỏi controller. Service này nhận vào đường dẫn tuyệt đối của file PDF và danh sách các trang cần trích xuất, sau đó trả về mảng kết quả bao gồm text đã nối, tổng số trang của tài liệu, danh sách trang đã xử lý và số trang thực tế được trích xuất.',
                                     'Phương thức extractText(string $pdfPath, array $pages = []): array kiểm tra sự tồn tại và tính hợp lệ của file, khởi tạo PdfParser, tải document và lấy tổng số trang. Nếu người dùng chỉ định pages, service sẽ lọc content stream tương ứng; ngược lại, toàn bộ tài liệu sẽ được duyệt. Kết quả text được chuẩn hóa (trim, loại bỏ ký tự điều khiển, chuẩn hóa xuống dòng) trước khi trả về cho controller.',
-                                    'Phương thức parsePageSelection(string $input, int $totalPages): array chịu trách nhiệm bóc tách chuỗi tham số pages từ request. Chuỗi được chuyển về dạng ASCII, loại bỏ khoảng trắng thừa và validate bằng regex ^[\d,\-]+$ để đảm bảo chỉ chứa chữ số, dấu phẩy và dấu gạch. Sau đó phương thức tách theo dấu phẩy, xử lý từng phần tử để phân biệt số lẻ và dải trang dạng a-b.',
+                                    'Phương thức parsePageSelection(string $input, int $totalPages): array chịu trách nhiệm bóc tách chuỗi tham số pages từ request. Chuỗi được chuyển về dạng ASCII, loại bỏ khoảng trắng thừa và xác thực bằng regex ^[\d,\-]+$ để đảm bảo chỉ chứa chữ số, dấu phẩy và dấu gạch. Sau đó phương thức tách theo dấu phẩy, xử lý từng phần tử để phân biệt số lẻ và dải trang dạng a-b.',
                                     'Quy trình chuẩn hóa được cụ thể hóa qua sơ đồ bước sau:',
                                     'Sau khi xác định danh sách trang, service áp dụng các ràng buộc bảo mật: tất cả giá trị phải là số nguyên dương, nhỏ hơn hoặc bằng tổng số trang, và tổng số trang được yêu cầu không vượt quá 1000 trang nhằm phòng chống tấn công DoS. Với mỗi dải trang, điểm bắt đầu phải nhỏ hơn hoặc bằng điểm kết thúc; nếu vi phạm, InvalidArgumentException sẽ được ném ra để controller trả về lỗi 400.',
-                                    'Quy trình xử lý ngoại lệ bao gồm việc bắt các lỗi do thư viện smalot/pdfparser trả về (ví dụ file bị hỏng, encoding không đọc được) và chuyển đổi thành JSON response chuẩn với mã lỗi 422 hoặc 500 tùy trường hợp. Các thông báo lỗi được viết rõ ràng bằng tiếng Việt giúp người dùng điều chỉnh input.',
+                                    'Quy trình xử lý ngoại lệ bao gồm việc bắt các lỗi do thư viện smalot/pdfparser trả về (ví dụ file bị hỏng, mã hóa không đọc được) và chuyển đổi thành JSON response chuẩn với mã lỗi 422 hoặc 500 tùy trường hợp. Các thông báo lỗi được viết rõ ràng bằng tiếng Việt giúp người dùng điều chỉnh input.',
                                     'API POST /api/books/{book}/extract-text được đặt trong BookTextExtractionController và bảo vệ bởi middleware auth:sanctum. Controller sử dụng BookPolicy hoặc phương thức hasPurchasedBook() để xác định quyền truy cập; nếu sách là public hoặc người dùng đã mua, request được tiếp tục, ngược lại trả về 403 Forbidden.',
                                     'Controller nhận tham số pages từ request, gọi PdfTextExtractor::parsePageSelection() để chuyển đổi input thành mảng trang, sau đó gọi extractText() và trả về JSON gồm text, total_pages, extracted_pages và page_count (số trang đã xử lý). Đồng thời controller ghi log thời gian thực thi để phục vụ đánh giá hiệu năng.',
                                     'Để tránh lạm dụng, route được cấu hình throttle:10,1 (10 requests mỗi phút) trong routes/api.php. Ngoài ra, job queue và cache có thể được bổ sung trong tương lai cho các file lớn; hiện tại, service sử dụng bộ nhớ tạm thời trong suốt quá trình trích xuất và giải phóng sau khi hoàn tất.',
@@ -1082,7 +1082,7 @@ class GenerateEssayFullDocx extends Command
                                 'lists' => [
                                     [
                                         'Bước 1: Loại bỏ mọi khoảng trắng trong chuỗi pages, ví dụ "10- 30, 5 , 100-200" trở thành "10-30,5,100-200".',
-                                        'Bước 2: Validate regex ^[\\d,\\-]+$ để đảm bảo chỉ chứa ký tự hợp lệ.',
+                                        'Bước 2: Xác thực regex ^[\\d,\\-]+$ để đảm bảo chỉ chứa ký tự hợp lệ.',
                                         'Bước 3: Tách chuỗi theo dấu phẩy, xác định từng phần tử là số lẻ hay dải trang.',
                                         'Bước 4: Với dải trang, chuyển đổi thành tập các số từ start đến end, đảm bảo start ≤ end.',
                                         'Bước 5: Gom toàn bộ trang vào một mảng, loại bỏ trùng lặp bằng array_unique và sắp xếp tăng dần.',
@@ -1149,7 +1149,7 @@ class GenerateEssayFullDocx extends Command
                                 'paragraphs' => [
                                     'Các screens được xây dựng bằng StatelessWidget hoặc StatefulWidget, sử dụng Material Design 3 widgets. Screens sử dụng Provider hoặc Consumer để lắng nghe services và rebuild khi có thay đổi.',
                                     'SplashScreen: Hiển thị logo, gọi AuthService.loadSession() để khôi phục session. Nếu đã login, navigate đến HomeScreen, ngược lại navigate đến LoginScreen.',
-                                    'LoginScreen và RegisterScreen: Forms để nhập thông tin, gọi AuthService.login() hoặc register(). Hiển thị loading indicator khi đang xử lý, hiển thị error message nếu có lỗi.',
+                                    'LoginScreen và RegisterScreen: Forms để nhập thông tin, gọi AuthService.login() hoặc register(). Hiển thị loading indicator khi đang xử lý, hiển thị lỗi message nếu có lỗi.',
                                     'HomeScreen: Hiển thị danh sách sách dạng grid hoặc list, có search bar, filter chips (authors, categories), sort dropdown. Sử dụng ListView.builder hoặc GridView.builder với pagination (infinite scroll). Có AppDrawer để navigate đến các màn hình khác.',
                                     'BookDetailScreen: Hiển thị chi tiết sách (cover, title, description, price, authors, categories, rating, reviews). Có nút "Add to Cart". Hiển thị danh sách reviews với vote buttons. Nếu user đã mua sách, hiển thị nút "Read Now".',
                                     'CartScreen: Hiển thị danh sách sách trong giỏ hàng, tổng giá. Có nút "Checkout".',
@@ -1193,7 +1193,7 @@ class GenerateEssayFullDocx extends Command
                                 'title' => 'HTTP Client',
                                 'level' => 3,
                                 'paragraphs' => [
-                                    'ApiClient là một singleton class wrap http package hoặc dio package, cung cấp các methods get(), post(), put(), patch(), delete(). ApiClient tự động thêm token vào header Authorization: Bearer {token} cho các authenticated requests. ApiClient cũng xử lý errors (network errors, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Validation Error, 500 Server Error) và throw exceptions hoặc trả về error messages.',
+                                    'ApiClient là một singleton class wrap http package hoặc dio package, cung cấp các methods get(), post(), put(), patch(), delete(). ApiClient tự động thêm token vào header Authorization: Bearer {token} cho các authenticated requests. ApiClient cũng xử lý lỗi (network errors, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Xác thực Error, 500 Server Error) và throw exceptions hoặc trả về lỗi messages.',
                                     'Services gọi ApiClient thay vì gọi trực tiếp http.get(). Ví dụ, AuthService.login() gọi apiClient.post("/api/auth/login", body: {email, password}), nhận về token và user, lưu vào SharedPreferences và state.',
                                 ],
                             ],
@@ -1209,17 +1209,17 @@ class GenerateEssayFullDocx extends Command
                                 'title' => 'UI Trích xuất văn bản',
                                 'level' => 3,
                                 'paragraphs' => [
-                                    'Giao diện trích xuất văn bản được xây dựng với mục tiêu tối ưu trải nghiệm người dùng thông qua các thành phần Material Design 3 chuẩn, đảm bảo tính nhất quán với toàn bộ ứng dụng. BookDetailScreen và MyBooksScreen được bổ sung nút "Extract Text" (biểu tượng text_snippet hoặc document_scanner) nằm bên cạnh nút "Read Now" cho người dùng đã mua sách.',
-                                    'Khi nhấn "Extract Text", bottom sheet hoặc dialog xuất hiện với hai lựa chọn phân biệt: radio button "All pages" (mặc định) cho phép trích xuất toàn bộ tài liệu và radio button "Specific pages" đi kèm TextField để nhập danh sách trang cụ thể.',
-                                    'Text input field sử dụng FilteringTextInputFormatter.allow(RegExp(r"[\\d,\\s\\-]")) để chỉ chấp nhận chữ số, dấu phẩy, khoảng trắng và gạch ngang. Validation trên client thực hiện real-time: nếu người dùng nhập ký tự không hợp lệ, border chuyển màu đỏ và hiển thị helper text hướng dẫn sửa lỗi. Nút "Extract" chỉ được enable khi input hợp lệ hoặc radio button "All pages" được chọn. Hint text được đặt là "Ví dụ: 1,5,10,30-40,100-200" để gợi ý định dạng chuẩn.',
+                                    'Giao diện trích xuất văn bản được xây dựng với mục tiêu tối ưu trải nghiệm người dùng thông qua các thành phần Material Design 3 chuẩn, đảm bảo tính nhất quán với toàn bộ ứng dụng. BookDetailScreen và MyBooksScreen được bổ sung nút "Trích xuất Text" (biểu tượng text_snippet hoặc document_scanner) nằm bên cạnh nút "Read Now" cho người dùng đã mua sách.',
+                                    'Khi nhấn "Trích xuất Text", bottom sheet hoặc dialog xuất hiện với hai lựa chọn phân biệt: radio button "All pages" (mặc định) cho phép trích xuất toàn bộ tài liệu và radio button "Specific pages" đi kèm TextField để nhập danh sách trang cụ thể.',
+                                    'Text input field sử dụng FilteringTextInputFormatter.allow(RegExp(r"[\\d,\\s\\-]")) để chỉ chấp nhận chữ số, dấu phẩy, khoảng trắng và gạch ngang. Xác thực trên client thực hiện real-time: nếu người dùng nhập ký tự không hợp lệ, border chuyển màu đỏ và hiển thị helper text hướng dẫn sửa lỗi. Nút "Extract" chỉ được enable khi input hợp lệ hoặc radio button "All pages" được chọn. Hint text được đặt là "Ví dụ: 1,5,10,30-40,100-200" để gợi ý định dạng chuẩn.',
                                     'Sau khi nhấn "Extract", một CircularProgressIndicator hiển thị cùng thông báo "Đang trích xuất..." để thông báo tiến độ. Ứng dụng gọi API POST /api/books/{id}/extract-text thông qua service PdfTextService hoặc LibraryService với tham số pages. Nếu thành công, ứng dụng chuyển sang TextViewerScreen; nếu thất bại, hiển thị SnackBar với thông báo lỗi và nút "Retry".',
                                     'TextViewerScreen được thiết kế để tối ưu việc hiển thị và tương tác với văn bản đã trích xuất. AppBar chứa title "Extracted Text" và action buttons: Copy to clipboard (copy toàn bộ hoặc phần được chọn), Save as file (lưu thành .txt), Share (chia sẻ văn bản qua nền tảng khác, optional). Metadata card nằm trên cùng hiển thị thông tin tổng số trang của tài liệu, danh sách trang đã trích xuất (ví dụ "Pages: 1, 5, 10, 30-40") và tổng số ký tự hoặc từ.',
                                     'Body chính của screen sử dụng SingleChildScrollView kết hợp SelectableText widget để người dùng có thể cuộn, chọn và sao chép từng đoạn văn bản. Font family và size tuân theo SettingsService để đảm bảo tính nhất quán với các màn hình đọc khác. Text được căn lề justified và line spacing 1.5 để dễ đọc trên cả thiết bị di động và desktop.',
                                     'Khi nhấn "Copy to clipboard", ứng dụng gọi Clipboard.setData(ClipboardData(text: extractedText)) và hiển thị SnackBar xác nhận "Copied to clipboard!". Khi nhấn "Save as file", ứng dụng xử lý theo nền tảng:',
                                     'Service tích hợp được xây dựng theo mẫu repository pattern, tách biệt logic gọi API và xử lý lỗi khỏi UI. PdfTextService chứa phương thức extractText(int bookId, String? pages) trả về đối tượng ExtractedText với các thuộc tính text, totalPages, extractedPages và pageCount.',
-                                    "Ví dụ rút gọn:\nclass PdfTextService {\n    Future<ExtractedText> extractText(int bookId, String? pages) async {\n        final response = await http.post('/api/books/\$bookId/extract-text', body: {'pages': pages ?? ''});\n        return ExtractedText.fromJson(response.data);\n    }\n}\n\nclass ExtractedText {\n    final String text;\n    final int totalPages;\n    final List<int> extractedPages;\n    final int pageCount;\n\n    ExtractedText({required this.text, required this.totalPages, required this.extractedPages, required this.pageCount});\n\n    factory ExtractedText.fromJson(Map<String, dynamic> json) {\n        return ExtractedText(\n            text: json['text'] as String,\n            totalPages: json['total_pages'] as int,\n            extractedPages: List<int>.from(json['extracted_pages'] as List),\n            pageCount: json['page_count'] as int,\n        );\n    }\n}",
+                                    "Ví dụ rút gọn:\nclass PdfTextService {\n    Future<ExtractedText> extractText(int bookId, String? pages) async {\n        final response = await http.post('/api/books/\$bookId/extract-text', body: {'pages': pages ?? ''});\n        return ExtractedText.fromJson(response.data);\n    }\n}\n\nclass ExtractedText {\n    final String text;\n    final int totalPages;\n    final List<int> extractedPages;\n    final int pageCount;\n\n    ExtractedText({required this.text, được yêu cầu this.totalPages, được yêu cầu this.extractedPages, được yêu cầu this.pageCount});\n\n    factory ExtractedText.fromJson(Map<String, dynamic> json) {\n        return ExtractedText(\n            text: json['text'] as String,\n            totalPages: json['total_pages'] as int,\n            extractedPages: List<int>.from(json['extracted_pages'] as List),\n            pageCount: json['page_count'] as int,\n        );\n    }\n}",
                                     'Service xử lý các lỗi phổ biến:',
-                                    'Error handling được thiết kế với SnackBar kèm retry button. Khi lỗi xảy ra, SnackBar hiển thị thông báo chi tiết (ví dụ "Invalid page format. Please use format: 1,5,10,30-40") và action button "Retry" để người dùng thử lại mà không cần quay lại bước trước. Log được ghi lại trong debug mode phục vụ phát triển và troubleshooting.',
+                                    'Lỗi xử lý được thiết kế với SnackBar kèm retry button. Khi lỗi xảy ra, SnackBar hiển thị thông báo chi tiết (ví dụ "Invalid page format. Please use format: 1,5,10,30-40") và action button "Retry" để người dùng thử lại mà không cần quay lại bước trước. Log được ghi lại trong debug mode phục vụ phát triển và troubleshooting.',
                                     'Các test case cho widget và integration test bao gồm:',
                                 ],
                                 'lists' => [
@@ -1233,19 +1233,19 @@ class GenerateEssayFullDocx extends Command
                                         'Desktop (Windows/macOS/Linux): Sử dụng file_picker để mở dialog cho phép người dùng chọn vị trí lưu file.',
                                     ],
                                     [
-                                        '400 Bad Request khi chuỗi pages không hợp lệ: hiển thị "Invalid page format" với hướng dẫn sửa.',
+                                        '400 Xấu Request khi chuỗi pages không hợp lệ: hiển thị "Invalid page format" với hướng dẫn sửa.',
                                         '403 Forbidden khi người dùng chưa mua sách: hiển thị "You need to purchase this book first".',
                                         '404 Not Found khi sách không tồn tại: navigate về màn hình trước.',
-                                        '422 Unprocessable Entity khi PDF bị lỗi hoặc không thể đọc: hiển thị "Unable to extract text from this PDF".',
-                                        '500 Internal Server Error: hiển thị "Server error, please try again later".',
+                                        '422 Unprocessable Entity khi PDF bị lỗi hoặc không thể đọc: hiển thị "Unable to trích xuất text from this PDF".',
+                                        '500 Internal Server Error: hiển thị "Server lỗi, please try again later".',
                                     ],
                                     [
-                                        'Widget test kiểm tra "Extract Text" button xuất hiện khi người dùng đã mua sách.',
+                                        'Widget test kiểm tra "Trích xuất Text" button xuất hiện khi người dùng đã mua sách.',
                                         'Widget test kiểm tra bottom sheet/dialog mở ra với đầy đủ controls.',
-                                        'Widget test kiểm tra validation input: nhập ký tự không hợp lệ thì border chuyển đỏ.',
+                                        'Widget test kiểm tra xác thực input: nhập ký tự không hợp lệ thì border chuyển đỏ.',
                                         'Widget test kiểm tra nút "Extract" bị disable khi input sai và enable khi input đúng.',
-                                        'Integration test mô phỏng toàn bộ flow: chọn trang → nhấn Extract → verify TextViewerScreen hiển thị với text và metadata đúng.',
-                                        'Integration test kiểm tra error handling: mock API trả 400, verify SnackBar hiển thị thông báo lỗi.',
+                                        'Integration test mô phỏng toàn bộ flow: chọn trang → nhấn Trích xuất → verify TextViewerScreen hiển thị với text và metadata đúng.',
+                                        'Integration test kiểm tra xử lý lỗi: mock API trả 400, verify SnackBar hiển thị thông báo lỗi.',
                                     ],
                                 ],
                             ],
@@ -1282,10 +1282,10 @@ class GenerateEssayFullDocx extends Command
                         'title' => 'Kiểm thử Backend',
                         'level' => 2,
                         'paragraphs' => [
-                            'Backend được kiểm thử bằng PHPUnit, Laravel cung cấp các helper methods để viết tests dễ dàng. Feature tests kiểm tra các HTTP endpoints end-to-end, từ request đến response, bao gồm cả database interactions.',
-                            'Ví dụ, AdminUserManagementTest kiểm tra các chức năng quản lý user: tạo user admin, login để lấy token, gọi GET /api/users để lấy danh sách users (expect 200 OK, JSON structure hợp lệ), gọi PATCH /api/users/{id}/role để thay đổi role (expect 200 OK, user role updated), gọi GET /api/users/{id} để lấy thông tin user (expect 200 OK, correct user data).',
-                            'Tests được chạy bằng lệnh php artisan test. Kết quả tests giúp phát hiện bugs sớm và đảm bảo các thay đổi mã nguồn không làm hỏng chức năng hiện có (regression).',
-                            'Đối với tính năng trích xuất văn bản, bộ feature test chuyên biệt được xây dựng trong BookTextExtractionTest nhằm bao phủ đầy đủ các nhánh logic của service và controller.',
+                            'Backend được kiểm thử bằng PHPUnit, Laravel cung cấp các helper methods để viết tests dễ dàng. Tính năng tests kiểm tra các HTTP endpoints end-to-end, từ request đến response, bao gồm cả database interactions.',
+                            'Ví dụ, AdminUserManagementTest kiểm tra các chức năng quản lý user: tạo user admin, login để lấy token, gọi GET /api/users để lấy danh sách users (expect 200 OK, JSON cấu trúc hợp lệ), gọi PATCH /api/users/{id}/role để thay đổi role (expect 200 OK, user role updated), gọi GET /api/users/{id} để lấy thông tin user (expect 200 OK, correct user data).',
+                            'Tests được chạy bằng lệnh php artisan test. Kết quả tests giúp phát hiện lỗi sớm và đảm bảo các thay đổi mã nguồn không làm hỏng chức năng hiện có (regression).',
+                            'Đối với tính năng trích xuất văn bản, bộ tính năng test chuyên biệt được xây dựng trong BookTextExtractionTest nhằm bao phủ đầy đủ các nhánh logic của service và controller.',
                         ],
                         'lists' => [
                             [
@@ -1293,10 +1293,10 @@ class GenerateEssayFullDocx extends Command
                                 'Test trích xuất trang lẻ: pages = "1,5,10" → expect extracted_pages = [1,5,10], page_count = 3.',
                                 'Test trích xuất dải trang: pages = "30-40,100-200" → expect hợp nhất dải trang đúng thứ tự, text chứa đoạn tương ứng.',
                                 'Test xử lý khoảng trắng: pages = "10- 30, 5 , 100-200" → expect service chuẩn hóa thành [5,10-30,100-200] và trả về 200.',
-                                'Test định dạng không hợp lệ: pages = "1,5,abc,10" → expect 400 Bad Request và thông báo lỗi cụ thể.',
-                                'Test dải trang ngược: pages = "40-30" → expect 400 Bad Request, thông báo hướng dẫn nhập lại.',
-                                'Test vượt phạm vi: pages = "999999" → expect 400 Bad Request vì vượt quá total_pages.',
-                                'Test giới hạn bảo mật: pages chứa hơn 1000 trang → expect 400 Bad Request với thông báo giới hạn.',
+                                'Test định dạng không hợp lệ: pages = "1,5,abc,10" → expect 400 Xấu Request và thông báo lỗi cụ thể.',
+                                'Test dải trang ngược: pages = "40-30" → expect 400 Xấu Request, thông báo hướng dẫn nhập lại.',
+                                'Test vượt phạm vi: pages = "999999" → expect 400 Xấu Request vì vượt quá total_pages.',
+                                'Test giới hạn bảo mật: pages chứa hơn 1000 trang → expect 400 Xấu Request với thông báo giới hạn.',
                                 'Test người dùng chưa mua sách: gửi request với user chưa sở hữu → expect 403 Forbidden.',
                                 'Test PDF lỗi: mock parser ném exception → expect 422 Unprocessable Entity, đảm bảo thông điệp lỗi thân thiện.',
                             ],
@@ -1306,19 +1306,19 @@ class GenerateEssayFullDocx extends Command
                         'title' => 'Kiểm thử Frontend',
                         'level' => 2,
                         'paragraphs' => [
-                            'Frontend được kiểm thử chủ yếu bằng manual testing trên các nền tảng (iOS simulator, Android emulator, Chrome browser, desktop). Mỗi screen và flow được test thủ công để đảm bảo UI hiển thị đúng, navigation hoạt động, API calls thành công, error handling đúng.',
+                            'Frontend được kiểm thử chủ yếu bằng kiểm thử thủ công trên các nền tảng (iOS simulator, Android emulator, Chrome browser, desktop). Mỗi screen và flow được test thủ công để đảm bảo UI hiển thị đúng, navigation hoạt động, API calls thành công, lỗi xử lý đúng.',
                             'Flutter cũng hỗ trợ widget tests và integration tests. Widget tests kiểm tra các widgets riêng lẻ, verify widgets render đúng với input cho trước. Integration tests kiểm tra flows phức tạp, simulate user interactions (tap, scroll, input text), verify UI state changes.',
-                            'Do giới hạn thời gian, đồ án chủ yếu sử dụng manual testing, nhưng trong tương lai có thể bổ sung automated tests để tăng độ tin cậy.',
+                            'Do giới hạn thời gian, đồ án chủ yếu sử dụng kiểm thử thủ công, nhưng trong tương lai có thể bổ sung automated tests để tăng độ tin cậy.',
                             'Trường hợp trích xuất văn bản được kiểm tra chi tiết với widget test và integration test:',
                         ],
                         'lists' => [
                             [
-                                'Widget test "Extract Text" button visibility: Mở BookDetailScreen cho sách đã mua, verify nút "Extract Text" xuất hiện, tìm icon text_snippet hoặc document_scanner.',
-                                'Widget test bottom sheet rendering: Tap nút "Extract Text", verify bottom sheet xuất hiện với radio buttons và TextField.',
-                                'Widget test input validation: Nhập chuỗi "abc123" vào TextField, verify border chuyển đỏ, helper text hiển thị. Nhập "1,5,10" thì border xanh, helper text biến mất.',
+                                'Widget test "Trích xuất Text" button visibility: Mở BookDetailScreen cho sách đã mua, verify nút "Trích xuất Text" xuất hiện, tìm icon text_snippet hoặc document_scanner.',
+                                'Widget test bottom sheet rendering: Tap nút "Trích xuất Text", verify bottom sheet xuất hiện với radio buttons và TextField.',
+                                'Kiểm thử widget cho xác thực đầu vào: Nhập chuỗi "abc123" vào TextField, verify border chuyển đỏ, helper text hiển thị. Nhập "1,5,10" thì border xanh, helper text biến mất.',
                                 'Widget test nút "Extract" enable/disable: Khi input sai, nút "Extract" disabled; khi input đúng hoặc chọn "All pages", nút enabled.',
-                                'Integration test toàn flow: Mở My Books → tap sách → tap "Extract Text" → chọn "Specific pages", nhập "1,5,10" → tap "Extract" → expect TextViewerScreen hiển thị text và metadata card (total_pages, extracted_pages, page_count) với giá trị đúng.',
-                                'Integration test error handling: Mock API trả 400 Bad Request, verify SnackBar hiển thị thông báo "Invalid page format" và action button "Retry".',
+                                'Integration test toàn flow: Mở My Books → tap sách → tap "Trích xuất Text" → chọn "Specific pages", nhập "1,5,10" → tap "Extract" → expect TextViewerScreen hiển thị text và metadata card (total_pages, extracted_pages, page_count) với giá trị đúng.',
+                                'Integration test xử lý lỗi: Mock API trả 400 Xấu Request, verify SnackBar hiển thị thông báo "Invalid page format" và action button "Retry".',
                                 'Integration test retry: Sau lỗi, tap "Retry" trong SnackBar, verify bottom sheet mở lại, input giữ nguyên giá trị trước đó.',
                             ],
                         ],
@@ -1331,7 +1331,7 @@ class GenerateEssayFullDocx extends Command
                         ],
                         'lists' => [
                             [
-                                'Scenario 1 - Đăng ký và đăng nhập: Mở app → Register với email/password mới → Verify register success, auto login → Verify home screen hiển thị.',
+                                'Scenario 1 - Đăng ký và đăng nhập: Mở app → Register với email/password mới → Verify register thành công, auto login → Verify home screen hiển thị.',
                                 'Scenario 2 - Duyệt và tìm kiếm sách: Ở home screen → Scroll danh sách sách → Search "laravel" → Verify kết quả tìm kiếm đúng → Filter by category "Programming" → Verify kết quả lọc đúng.',
                                 'Scenario 3 - Mua sách: Click vào một cuốn sách → Verify book detail hiển thị → Click "Add to Cart" → Verify cart badge tăng → Mở cart → Verify sách trong cart → Click "Checkout" → Verify số dư ví đủ hoặc không đủ → Confirm order → Verify order created, ví trừ tiền, sách xuất hiện trong My Books.',
                                 'Scenario 4 - Đọc sách: Mở My Books → Click "Read" → Verify PDF reader mở, PDF hiển thị đúng.',
@@ -1344,9 +1344,9 @@ class GenerateEssayFullDocx extends Command
                         'title' => 'Kết quả kiểm thử',
                         'level' => 2,
                         'paragraphs' => [
-                            'Tất cả feature tests của backend đều pass, coverage khoảng 70% (measured by PHPUnit coverage report). Các API endpoints hoạt động đúng theo spec, validation đúng, error handling đúng.',
-                            'Frontend manual testing trên iOS, Android, web, Windows đều thành công. UI hiển thị đúng, responsive trên các kích thước màn hình khác nhau, navigation mượt mà, API calls thành công, loading states và error messages hiển thị đúng.',
-                            'Integration tests cho các scenarios chính đều thành công, không phát hiện bugs nghiêm trọng. Một số bugs nhỏ (UI glitches, minor logic errors) đã được fix trong quá trình testing.',
+                            'Tất cả tính năng tests của backend đều pass, coverage khoảng 70% (measured by PHPUnit coverage report). Các API endpoints hoạt động đúng theo spec, xác thực đúng, lỗi xử lý đúng.',
+                            'Frontend kiểm thử thủ công trên iOS, Android, web, Windows đều thành công. UI hiển thị đúng, responsive trên các kích thước màn hình khác nhau, navigation mượt mà, API calls thành công, loading states và lỗi messages hiển thị đúng.',
+                            'Integration tests cho các scenarios chính đều thành công, không phát hiện lỗi nghiêm trọng. Một số lỗi nhỏ (UI glitches, minor logic errors) đã được fix trong quá trình testing.',
                         ],
                     ],
                     [
@@ -1360,7 +1360,7 @@ class GenerateEssayFullDocx extends Command
                                 'GET /api/books (list with pagination): 50-100ms.',
                                 'GET /api/books/{id} (detail): 30-50ms.',
                                 'POST /api/auth/login: 100-150ms (do hashing password).',
-                                'POST /api/orders (create order): 200-300ms (do nhiều operations: validate, create order, order_items, update wallet, update user_books).',
+                                'POST /api/orders (create order): 200-300ms (do nhiều operations: xác thực, create order, order_items, update wallet, update user_books).',
                                 'GET /api/books/{id}/download-pdf: 500ms-2s (tùy kích thước PDF).',
                                 'POST /api/books/{id}/extract-text (trích xuất toàn bộ ~100 trang): 3-5 giây, phụ thuộc độ dài văn bản và font mã hóa.',
                                 'POST /api/books/{id}/extract-text (chỉ 10 trang cụ thể): 250-400ms.',
@@ -1387,7 +1387,7 @@ class GenerateEssayFullDocx extends Command
                                 'Hỗ trợ đa nền tảng (mobile, web, desktop) từ một codebase Flutter duy nhất.',
                                 'Giao diện đẹp, trực quan, tuân theo Material Design 3.',
                                 'Hỗ trợ đa ngôn ngữ (EN/VI), light/dark theme.',
-                                'Có unit tests và feature tests, đảm bảo chất lượng mã nguồn.',
+                                'Có unit tests và tính năng tests, đảm bảo chất lượng mã nguồn.',
                                 'Có Postman collection, dễ dàng test và tài liệu hóa API.',
                             ],
                         ],
@@ -1407,17 +1407,17 @@ class GenerateEssayFullDocx extends Command
                         'level' => 2,
                         'paragraphs' => [
                             'Đồ án "Hệ thống Hiệu sách điện tử trực tuyến - My Digital Bookstore" đã được hoàn thành theo đúng mục tiêu và phạm vi đề ra. Hệ thống cung cấp một giải pháp toàn diện cho việc quản lý và phân phối sách điện tử, bao gồm đầy đủ các chức năng từ phía người dùng (đăng ký, đăng nhập, duyệt sách, mua sắm, thanh toán, đọc sách, đánh giá) đến phía quản trị viên (quản lý người dùng, sách, tác giả, thể loại, đơn hàng, ví điện tử).',
-                            'Đặc biệt, hệ thống đã triển khai thành công tính năng trích xuất văn bản từ PDF với hai phương pháp: parsing truyền thống cho PDF text-based (smalot/pdfparser) và Tesseract OCR cho PDF image-based (scan). Việc tích hợp Tesseract OCR - một OCR engine mã nguồn mở do Google phát triển - cho phép người dùng trích xuất văn bản từ cả những tài liệu scan không có text layer, mở rộng đáng kể khả năng ứng dụng của hệ thống. Mặc dù Tesseract có tốc độ xử lý chậm hơn (10-30 giây/trang) so với commercial cloud APIs (1-2 giây/trang), giải pháp này mang lại lợi thế về chi phí (miễn phí hoàn toàn), bảo mật (xử lý local, không upload lên cloud), và tính độc lập (không phụ thuộc dịch vụ bên ngoài). Đây là trade-off hợp lý cho MVP và small-medium workload.',
+                            'Đặc biệt, hệ thống đã triển khai thành công tính năng trích xuất văn bản từ PDF với hai phương pháp: phân tích cú pháp truyền thống cho PDF text-based (smalot/pdfparser) và Tesseract OCR cho PDF image-based (scan). Việc tích hợp Tesseract OCR - một OCR engine mã nguồn mở do Google phát triển - cho phép người dùng trích xuất văn bản từ cả những tài liệu scan không có text layer, mở rộng đáng kể khả năng ứng dụng của hệ thống. Mặc dù Tesseract có tốc độ xử lý chậm hơn (10-30 giây/trang) so với commercial cloud APIs (1-2 giây/trang), giải pháp này mang lại lợi thế về chi phí (miễn phí hoàn toàn), bảo mật (xử lý local, không upload lên cloud), và tính độc lập (không phụ thuộc dịch vụ bên ngoài). Đây là trade-off hợp lý cho MVP và small-medium workload.',
                             'Qua quá trình thực hiện đồ án, em đã có cơ hội áp dụng và củng cố kiến thức về:',
                         ],
                         'lists' => [
                             [
                                 'Phân tích và thiết kế hệ thống: Xác định yêu cầu chức năng và phi chức năng, vẽ use case diagram, thiết kế kiến trúc tổng thể, thiết kế cơ sở dữ liệu (ERD), thiết kế API.',
-                                'Lập trình backend với Laravel: Eloquent ORM, migrations, seeders, factories, authentication với Sanctum, RESTful API, controllers, routes, middleware, validation, file upload/download, tích hợp Tesseract OCR, queue jobs, feature tests với PHPUnit.',
+                                'Lập trình backend với Laravel: Eloquent ORM, migrations, seeders, factories, authentication với Sanctum, RESTful API, controllers, routes, middleware, xác thực, file upload/download, tích hợp Tesseract OCR, queue jobs, tính năng tests với PHPUnit.',
                                 'Lập trình frontend với Flutter: Widget tree, StatelessWidget/StatefulWidget, Material Design 3, navigation, state management với singleton services và ChangeNotifier, HTTP client, local storage với SharedPreferences, internationalization, theme management, PDF reader integration.',
-                                'Tích hợp frontend-backend: RESTful API communication, token-based authentication, error handling, data serialization/deserialization (JSON).',
-                                'Tích hợp công nghệ bên thứ ba: Cài đặt và cấu hình Tesseract OCR trên server, xử lý PDF to image conversion, image preprocessing, OCR pipeline.',
-                                'Kiểm thử: Unit tests, feature tests, integration tests, manual testing, performance testing.',
+                                'Tích hợp frontend-backend: RESTful API communication, token-based authentication, xử lý lỗi, data serialization/deserialization (JSON).',
+                                'Tích hợp công nghệ bên thứ ba: Cài đặt và cấu hình Tesseract OCR trên server, xử lý PDF to image conversion, image prexử lý, OCR pipeline.',
+                                'Kiểm thử: Unit tests, tính năng tests, integration tests, kiểm thử thủ công, hiệu năng testing.',
                                 'Version control: Sử dụng Git để quản lý mã nguồn, branching, merging.',
                             ],
                         ],
@@ -1434,15 +1434,15 @@ class GenerateEssayFullDocx extends Command
                         'lists' => [
                             [
                                 'Chưa tích hợp cổng thanh toán thực tế: Hệ thống sử dụng ví điện tử nội bộ thay vì tích hợp VNPay, MoMo, PayPal. Điều này phù hợp cho môi trường demo nhưng không thể sử dụng trong production thực tế.',
-                                'Chưa có hệ thống gợi ý sách thông minh: Không có tính năng recommend books dựa trên lịch sử mua sắm, đánh giá, hoặc hành vi người dùng. Có thể bổ sung bằng cách sử dụng collaborative filtering hoặc content-based filtering.',
+                                'Chưa có hệ thống gợi ý sách thông minh: Không có tính năng khuyến nghị books dựa trên lịch sử mua sắm, đánh giá, hoặc hành vi người dùng. Có thể bổ sung bằng cách sử dụng collaborative filtering hoặc content-based filtering.',
                                 'Tìm kiếm cơ bản: Chỉ hỗ trợ tìm kiếm theo tên sách, chưa có full-text search hoặc advanced filters. Có thể cải thiện bằng cách tích hợp Elasticsearch hoặc Laravel Scout.',
                                 'Chưa có thông báo đẩy: Người dùng không nhận được thông báo khi đơn hàng được xử lý, yêu cầu nạp tiền được chấp nhận, hoặc có sách mới. Có thể bổ sung bằng cách sử dụng Firebase Cloud Messaging.',
                                 'Chưa có DRM: File PDF không được mã hóa hoặc watermark, dễ bị copy và phát tán trái phép. Có thể cải thiện bằng cách sử dụng các giải pháp DRM như Adobe Content Server hoặc tự xây dựng hệ thống watermarking.',
                                 'Chưa có analytics dashboard: Admin không có dashboard để xem thống kê doanh số, người dùng active, sách bán chạy, revenue. Có thể bổ sung bằng cách sử dụng Laravel Nova, Filament, hoặc tự xây dựng với Chart.js.',
                                 'Chưa có CI/CD pipeline: Deployment thủ công, chưa có automated testing và deployment. Có thể bổ sung bằng cách sử dụng GitHub Actions, GitLab CI, hoặc Jenkins.',
-                                'Test coverage chưa cao: Chỉ có feature tests cho một số flows chính, chưa có unit tests cho tất cả services và widgets. Cần bổ sung thêm tests để đảm bảo chất lượng.',
-                                'Tesseract OCR có giới hạn về tốc độ và accuracy: Xử lý chậm (10-30 giây/trang) và độ chính xác thấp hơn (85-95%) so với cloud APIs (95-99%). Với PDF scan chất lượng kém, kết quả có thể không đạt yêu cầu.',
-                                'Tiêu tốn tài nguyên server: OCR process tốn CPU và memory, có thể ảnh hưởng scalability khi số lượng requests OCR tăng cao. Cần queue processing và horizontal scaling để xử lý workload lớn.',
+                                'Test coverage chưa cao: Chỉ có tính năng tests cho một số flows chính, chưa có unit tests cho tất cả services và widgets. Cần bổ sung thêm tests để đảm bảo chất lượng.',
+                                'Tesseract OCR có giới hạn về tốc độ và Độ chính xác: Xử lý chậm (10-30 giây/trang) và độ chính xác thấp hơn (85-95%) so với cloud APIs (95-99%). Với PDF scan chất lượng kém, kết quả có thể không đạt yêu cầu.',
+                                'Tiêu tốn tài nguyên server: OCR xử lý tốn CPU và memory, có thể ảnh hưởng scalability khi số lượng requests OCR tăng cao. Cần queue xử lý và horizontal mở rộng để xử lý workload lớn.',
                             ],
                         ],
                     ],
@@ -1455,22 +1455,22 @@ class GenerateEssayFullDocx extends Command
                         'lists' => [
                             [
                                 'Tích hợp cổng thanh toán: Tích hợp VNPay, MoMo, PayPal để người dùng có thể thanh toán trực tuyến thực sự.',
-                                'Hệ thống gợi ý sách: Xây dựng recommendation engine dựa trên collaborative filtering, content-based filtering, hoặc hybrid approach. Sử dụng machine learning để phân tích hành vi người dùng và gợi ý sách phù hợp.',
+                                'Hệ thống gợi ý sách: Xây dựng khuyến nghị engine dựa trên collaborative filtering, content-based filtering, hoặc kết hợp phương pháp. Sử dụng machine learning để phân tích hành vi người dùng và gợi ý sách phù hợp.',
                                 'Tìm kiếm nâng cao: Tích hợp Elasticsearch hoặc Laravel Scout để hỗ trợ full-text search, faceted search, autocomplete, typo tolerance.',
                                 'Thông báo đẩy: Tích hợp Firebase Cloud Messaging để gửi thông báo đẩy đến các thiết bị di động, thông báo email cho các sự kiện quan trọng.',
                                 'DRM và bảo vệ bản quyền: Mã hóa PDF, watermarking, hoặc sử dụng các giải pháp DRM chuyên nghiệp để bảo vệ nội dung.',
                                 'Analytics và báo cáo: Xây dựng dashboard cho admin để xem thống kê doanh số, người dùng, sách bán chạy, revenue theo thời gian. Sử dụng Chart.js, D3.js, hoặc các thư viện visualization khác.',
-                                'Social features: Cho phép người dùng follow nhau, share đánh giá lên social media, tạo reading lists, join book clubs.',
-                                'Tối ưu hiệu năng Tesseract OCR: Cải thiện tốc độ xử lý OCR thông qua image preprocessing (deskew, denoise, contrast enhancement), parallel processing cho multi-page PDFs, và caching kết quả OCR đã xử lý. Nghiên cứu hardware acceleration (GPU) cho Tesseract.',
-                                'Hybrid OCR approach: Cung cấp tùy chọn cho premium users sử dụng cloud OCR APIs (Google Cloud Vision, AWS Textract) khi cần accuracy cao và tốc độ nhanh, trong khi free users vẫn sử dụng Tesseract. Triển khai cost estimation và user tier system.',
-                                'Cải thiện độ chính xác OCR tiếng Việt: Huấn luyện lại Tesseract model với custom training data từ các tài liệu tiếng Việt phổ biến trong hệ thống. Tích hợp post-processing với Vietnamese spell checker và language model để sửa lỗi OCR.',
-                                'Full-text search trong PDF đã trích xuất: Xây dựng index từ văn bản đã trích xuất (cả parsing và OCR), cho phép người dùng tìm kiếm nội dung trong toàn bộ thư viện sách đã mua. Tích hợp Elasticsearch hoặc Meilisearch cho fast search.',
+                                'Tính năng xã hội: Cho phép người dùng follow nhau, share đánh giá lên social media, tạo reading lists, join book clubs.',
+                                'Tối ưu hiệu năng Tesseract OCR: Cải thiện tốc độ xử lý OCR thông qua tiền xử lý hình ảnh (deskew, denoise, contrast enhancement), parallel xử lý cho multi-page PDFs, và caching kết quả OCR đã xử lý. Nghiên cứu hardware acceleration (GPU) cho Tesseract.',
+                                'Kết hợp phương pháp OCR: Cung cấp tùy chọn cho premium users sử dụng cloud OCR APIs (Google Cloud Vision, AWS Textract) khi cần độ chính xác cao và tốc độ nhanh, trong khi free users vẫn sử dụng Tesseract. Triển khai cost estimation và user tier system.',
+                                'Cải thiện độ chính xác OCR tiếng Việt: Huấn luyện lại Tesseract model với dữ liệu huấn luyện tùy chỉnh từ các tài liệu tiếng Việt phổ biến trong hệ thống. Tích hợp hậu xử lý với Vietnamese spell checker và language model để sửa lỗi OCR.',
+                                'Full-text search trong PDF đã trích xuất: Xây dựng index từ văn bản đã trích xuất (cả phân tích cú pháp và OCR), cho phép người dùng tìm kiếm nội dung trong toàn bộ thư viện sách đã mua. Tích hợp Elasticsearch hoặc Meilisearch cho fast search.',
                                 'Highlight và annotation trong PDF: Cho phép người dùng đánh dấu đoạn văn bản quan trọng, ghi chú trực tiếp trên PDF, lưu annotations vào database và đồng bộ giữa các thiết bị.',
                                 'Audiobooks: Bổ sung hỗ trợ audiobooks, tích hợp audio player.',
                                 'Offline reading: Cho phép download sách và đọc offline, đồng bộ tiến độ đọc khi online.',
                                 'Admin panel nâng cao: Sử dụng Laravel Nova, Filament, hoặc tự xây dựng admin panel với UI/UX tốt hơn, hỗ trợ bulk operations, advanced filters.',
                                 'CI/CD pipeline: Thiết lập GitHub Actions hoặc GitLab CI để tự động chạy tests, build, và deploy khi có commit mới.',
-                                'Performance optimization: Sử dụng Redis cache, database indexing, query optimization, CDN cho static assets.',
+                                'Hiệu năng optimization: Sử dụng Redis cache, database indexing, query optimization, CDN cho static assets.',
                                 'Security hardening: Thêm rate limiting, CAPTCHA cho login/register, two-factor authentication, security headers, regular security audits.',
                             ],
                         ],
@@ -1490,11 +1490,11 @@ class GenerateEssayFullDocx extends Command
             'Google. (2024). Tesseract OCR. Retrieved from https://github.com/tesseract-ocr/tesseract',
             'Laravel. (2024). Laravel Sanctum Documentation. Retrieved from https://laravel.com/docs/12.x/sanctum',
             'Dart. (2024). Dart Language Tour. Retrieved from https://dart.dev/guides/language/language-tour',
-            'Smith, R. (2007). An Overview of the Tesseract OCR Engine. Proceedings of the Ninth International Conference on Document Analysis and Recognition (ICDAR), 2, 629-633. IEEE.',
+            'Smith, R. (2007). An Overview of the Tesseract OCR Engine. Proceedings of the Ninth International Conference on Document Phân tích and Recognition (ICDAR), 2, 629-633. IEEE.',
             'Otwell, T. (2024). Laravel: Up & Running (3rd ed.). O\'Reilly Media.',
             'Wu, E. (2023). Flutter Complete Reference 2023. Self-published.',
             'Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). Design Patterns: Elements of Reusable Object-Oriented Software. Addison-Wesley Professional.',
-            'Martin, R. C. (2017). Clean Architecture: A Craftsman\'s Guide to Software Structure and Design. Prentice Hall.',
+            'Martin, R. C. (2017). Clean Architecture: A Craftsman\'s Guide to Software Cấu trúc and Design. Prentice Hall.',
             'Newman, S. (2021). Building Microservices: Designing Fine-Grained Systems (2nd ed.). O\'Reilly Media.',
             'Fowler, M. (2002). Patterns of Enterprise Application Architecture. Addison-Wesley Professional.',
             'Richardson, C. (2018). Microservices Patterns. Manning Publications.',
@@ -1564,7 +1564,7 @@ class GenerateEssayFullDocx extends Command
         $section->addTextBreak();
         $this->addParagraph($section, 'Chi tiết endpoint POST /api/books/{id}/extract-text:');
         $this->addParagraph($section, 'Request body: {"method": "auto|traditional|ocr", "pages": "1,5,10,30-40"} (cả hai tham số đều tùy chọn).');
-        $this->addParagraph($section, 'method: "auto" (default) = tự động phát hiện loại PDF; "traditional" = chỉ dùng parsing; "ocr" = chỉ dùng Tesseract OCR.');
+        $this->addParagraph($section, 'method: "auto" (default) = tự động phát hiện loại PDF; "traditional" = chỉ dùng phân tích cú pháp; "ocr" = chỉ dùng Tesseract OCR.');
         $this->addParagraph($section, 'pages: chuỗi định dạng "1,5,10" hoặc "1-10,20-30" để chỉ định trang cụ thể. Bỏ trống = xử lý toàn bộ tài liệu.');
         $this->addParagraph($section, 'Response: {"success": true, "data": {"text": "...", "total_pages": 250, "extracted_pages": [1,5,10,...], "page_count": 142, "method_used": "traditional", "duration_ms": 3500}}.');
         $this->addParagraph($section, 'Với method="traditional": thời gian xử lý ~1-2 giây/100 trang. Với method="ocr": thời gian ~10-30 giây/trang tùy độ phức tạp. Endpoint yêu cầu authentication và quyền sở hữu sách.');
@@ -1579,7 +1579,7 @@ class GenerateEssayFullDocx extends Command
         $section->addText('│   ├── config/           # Cấu hình framework', ['name' => 'Courier New', 'size' => 10]);
         $section->addText('│   ├── database/         # Migrations, Seeders, Factories', ['name' => 'Courier New', 'size' => 10]);
         $section->addText('│   ├── routes/           # Định nghĩa routes API', ['name' => 'Courier New', 'size' => 10]);
-        $section->addText('│   ├── tests/            # PHPUnit feature tests', ['name' => 'Courier New', 'size' => 10]);
+        $section->addText('│   ├── tests/            # PHPUnit tính năng tests', ['name' => 'Courier New', 'size' => 10]);
         $section->addText('│   └── composer.json     # Khai báo dependencies PHP', ['name' => 'Courier New', 'size' => 10]);
         $section->addText('├── frontend/ (Flutter 3)', ['name' => 'Courier New', 'size' => 10]);
         $section->addText('│   ├── lib/', ['name' => 'Courier New', 'size' => 10]);
