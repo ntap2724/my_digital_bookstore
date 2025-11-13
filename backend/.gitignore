@@ -14,6 +14,7 @@
 /storage/*.key
 /storage/pail
 /storage/app/essays
+/storage/app/temp
 /auth.json
 Homestead.json
 Homestead.yaml

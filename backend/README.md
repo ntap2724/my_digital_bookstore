@@ -149,6 +149,319 @@ The generated document includes:
 - **Headings**: Numbered (1, 1.1, 1.1.1)
 - **Page Numbers**: Starting from first content section (footer, centered)
 
+## PDF Text Extraction with OCR
+
+This project includes a PDF text extraction feature with OCR (Optical Character Recognition) support for extracting text from both regular and scanned PDF documents.
+
+### System Dependencies
+
+Before using the OCR features, you need to install the following system dependencies:
+
+#### Tesseract OCR
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install tesseract-ocr tesseract-ocr-eng tesseract-ocr-vie
+```
+
+**macOS:**
+```bash
+brew install tesseract tesseract-lang
+```
+
+**Windows:**
+```bash
+choco install tesseract
+```
+
+Or download the installer from: https://github.com/UB-Mannheim/tesseract/wiki
+
+#### ImageMagick & Imagick Extension
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install php-imagick imagemagick ghostscript
+```
+
+**macOS:**
+```bash
+brew install imagemagick ghostscript
+pecl install imagick
+```
+
+**Windows:**
+1. Download ImageMagick from: https://imagemagick.org/script/download.php
+2. Install the PHP imagick extension via PECL or download pre-compiled DLL
+
+### PHP Packages
+
+The required Composer packages are already included in `composer.json`:
+
+```bash
+composer require thiagoalessio/tesseract_ocr spatie/pdf-to-image
+```
+
+### Configuration
+
+Add the following environment variables to your `.env` file:
+
+```env
+TESSERACT_PATH=/usr/bin/tesseract
+OCR_TIMEOUT=120
+```
+
+The configuration is stored in `config/services.php`:
+
+```php
+'tesseract' => [
+    'binary' => env('TESSERACT_PATH', '/usr/bin/tesseract'),
+    'languages' => ['eng', 'vie'],
+    'timeout' => env('OCR_TIMEOUT', 120),
+],
+```
+
+### API Endpoint
+
+**Endpoint:** `POST /api/books/{book}/extract-text`
+
+**Authentication:** Required (Sanctum token)
+
+**Rate Limiting:** 10 requests per minute
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Options | Description |
+|-----------|------|----------|---------|---------|-------------|
+| `pages` | string | No | All pages | e.g., "1,5,10,30-40" | Page selection (comma-separated, ranges allowed) |
+| `method` | string | No | `text` | `text`, `ocr`, `combined` | Extraction method |
+| `language` | string | No | `eng` | `eng`, `vie`, `eng+vie` | OCR language |
+
+### Extraction Methods
+
+#### 1. `text` - Embedded Text Only (Fast, ~1-5 seconds)
+
+Extracts embedded text from PDFs using the PDF parser. This is the fastest method but only works with PDFs that contain selectable text.
+
+```bash
+curl -X POST https://api.example.com/api/books/123/extract-text \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pages": "1,5,10",
+    "method": "text"
+  }'
+```
+
+**Use Case:** Regular PDFs with embedded text (e.g., generated from Word, LaTeX)
+
+#### 2. `ocr` - OCR Only (Slow, ~2-10 seconds per page)
+
+Converts each PDF page to an image and performs OCR to extract text. This is the slowest method but works with scanned PDFs.
+
+```bash
+curl -X POST https://api.example.com/api/books/123/extract-text \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pages": "1-5",
+    "method": "ocr",
+    "language": "eng+vie"
+  }'
+```
+
+**Use Case:** Scanned documents, image-based PDFs
+
+#### 3. `combined` - Hybrid Approach (Recommended, Adaptive)
+
+Intelligently combines both methods:
+1. First tries to extract embedded text from each page
+2. If a page has less than 10 characters, uses OCR as fallback
+3. Returns combined results
+
+```bash
+curl -X POST https://api.example.com/api/books/123/extract-text \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pages": "1,5,10,30-40",
+    "method": "combined",
+    "language": "vie"
+  }'
+```
+
+**Use Case:** Mixed PDFs (some pages with text, some scanned), unknown PDF types
+
+### Response Format
+
+**Success Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "text": "Extracted text content...",
+  "total_pages": 250,
+  "extracted_pages": [1, 5, 10, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+  "page_count": 14,
+  "method_used": "combined",
+  "extraction_details": {
+    "embedded_text_pages": 12,
+    "ocr_pages": 2,
+    "failed_pages": 0
+  },
+  "processing_time_seconds": 12.5
+}
+```
+
+**Error Responses:**
+
+```json
+// 400 Bad Request - Invalid parameters
+{
+  "success": false,
+  "message": "Invalid page format. Use only numbers, commas, and hyphens."
+}
+
+// 403 Forbidden - No permission
+{
+  "success": false,
+  "message": "You don't have permission to access this book"
+}
+
+// 404 Not Found - No PDF
+{
+  "success": false,
+  "message": "Book has no PDF file"
+}
+
+// 500 Internal Server Error - OCR not available
+{
+  "success": false,
+  "message": "OCR engine not available. Please install Tesseract OCR."
+}
+
+// 500 Internal Server Error - Imagick not available
+{
+  "success": false,
+  "message": "Image processing not available. Please install Imagick extension."
+}
+```
+
+### Language Support
+
+The system supports three language options:
+
+- **`eng`** - English only
+- **`vie`** - Vietnamese only
+- **`eng+vie`** - Both English and Vietnamese (multilingual)
+
+You can add more languages by:
+1. Installing the Tesseract language data: `sudo apt-get install tesseract-ocr-<lang>`
+2. Adding the language code to `config/services.php`:
+
+```php
+'tesseract' => [
+    'binary' => env('TESSERACT_PATH', '/usr/bin/tesseract'),
+    'languages' => ['eng', 'vie', 'fra', 'deu'], // Add more languages here
+    'timeout' => env('OCR_TIMEOUT', 120),
+],
+```
+
+### Performance Considerations
+
+| Method | Speed | Accuracy | Best For |
+|--------|-------|----------|----------|
+| `text` | Very Fast (1-5s) | High (100%) | Regular PDFs with embedded text |
+| `ocr` | Slow (2-10s/page) | Good (80-95%) | Scanned documents |
+| `combined` | Adaptive | High | Unknown PDF types, mixed content |
+
+**Tips:**
+- Use `text` method for regular PDFs to get instant results
+- Use `combined` method when unsure about PDF type
+- OCR processing is CPU/memory intensive (300-500MB per page)
+- For large documents (>20 pages), consider using queue jobs
+- Higher DPI (300) provides better OCR accuracy but slower processing
+- Temporary image files are automatically cleaned up after OCR
+
+### Examples
+
+**Extract all pages with OCR:**
+```bash
+POST /api/books/123/extract-text
+{
+  "method": "ocr",
+  "language": "eng"
+}
+```
+
+**Extract specific pages with combined method:**
+```bash
+POST /api/books/123/extract-text
+{
+  "pages": "1,5,10-15",
+  "method": "combined",
+  "language": "eng+vie"
+}
+```
+
+**Extract Vietnamese text only:**
+```bash
+POST /api/books/123/extract-text
+{
+  "pages": "1-20",
+  "method": "ocr",
+  "language": "vie"
+}
+```
+
+### Testing
+
+The test suite includes comprehensive tests for all extraction methods:
+
+```bash
+php artisan test --filter PdfTextExtractionTest
+```
+
+**Test Coverage:**
+- ✅ Text extraction method
+- ✅ OCR extraction method
+- ✅ Combined extraction method
+- ✅ Language parameter validation
+- ✅ Method parameter validation
+- ✅ Processing time tracking
+- ✅ Extraction details metadata
+- ✅ All existing tests for page selection and validation
+
+### Troubleshooting
+
+**Issue: "OCR engine not available"**
+- Ensure Tesseract is installed: `tesseract --version`
+- Check TESSERACT_PATH in `.env` points to correct binary
+- Verify Tesseract is executable: `which tesseract`
+
+**Issue: "Image processing not available"**
+- Ensure Imagick extension is installed: `php -m | grep imagick`
+- Install ImageMagick: `sudo apt-get install imagemagick`
+- Install Ghostscript: `sudo apt-get install ghostscript`
+
+**Issue: "OCR processing failed"**
+- Check Tesseract language data is installed
+- Verify PDF is not corrupted
+- Ensure sufficient memory (OCR needs 300-500MB per page)
+- Check timeout settings in `.env`
+
+**Issue: Low OCR accuracy**
+- Increase image resolution (default is 300 DPI)
+- Ensure PDF scan quality is good
+- Use correct language parameter
+- Try different language combinations (e.g., `eng+vie`)
+
+**Issue: Slow performance**
+- Use `text` method for regular PDFs
+- Reduce number of pages extracted at once
+- Consider implementing queue jobs for large extractions
+- Increase timeout in `.env` if needed
+
 ## Complete Essay Generator
 
 This project includes a specialized command to generate a complete academic essay about the My Digital Bookstore project in Vietnamese:

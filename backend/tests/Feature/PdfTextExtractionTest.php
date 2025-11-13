@@ -5,9 +5,13 @@ namespace Tests\Feature;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\User;
+use App\Services\PdfTextExtractor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
+use RuntimeException;
+use Smalot\PdfParser\Parser;
 use Tests\TestCase;
 
 class PdfTextExtractionTest extends TestCase
@@ -43,6 +47,20 @@ class PdfTextExtractionTest extends TestCase
         if (file_exists($pdfPath)) {
             unlink($pdfPath);
         }
+
+        $tempDir = storage_path('app/temp/ocr');
+        if (is_dir($tempDir)) {
+            $files = glob($tempDir.'/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+        }
+
+        app()->forgetInstance(PdfTextExtractor::class);
+        app()->forgetInstance(Parser::class);
+        Mockery::close();
 
         parent::tearDown();
     }
@@ -545,5 +563,307 @@ class PdfTextExtractionTest extends TestCase
         $this->postJson("/api/books/{$book->id}/extract-text", [
             'pages' => '1',
         ])->assertStatus(429);
+    }
+
+    public function test_extract_with_text_method(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1,2',
+            'method' => 'text',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'method_used' => 'text',
+                'extracted_pages' => [1, 2],
+                'page_count' => 2,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'text',
+                'total_pages',
+                'extracted_pages',
+                'page_count',
+                'method_used',
+                'extraction_details' => [
+                    'embedded_text_pages',
+                    'ocr_pages',
+                    'failed_pages',
+                ],
+                'processing_time_seconds',
+            ]);
+
+        $this->assertEquals('text', $response->json('method_used'));
+        $this->assertEquals(2, $response->json('extraction_details.embedded_text_pages'));
+        $this->assertEquals(0, $response->json('extraction_details.ocr_pages'));
+    }
+
+    public function test_extract_with_default_method(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'method_used' => 'text',
+            ]);
+    }
+
+    public function test_invalid_extraction_method_rejected(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1',
+            'method' => 'invalid',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_invalid_language_rejected(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1',
+            'method' => 'text',
+            'language' => 'invalid',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_valid_languages_accepted(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        foreach (['eng', 'vie', 'eng+vie'] as $language) {
+            $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+                'pages' => '1',
+                'method' => 'text',
+                'language' => $language,
+            ]);
+
+            $response->assertOk();
+        }
+    }
+
+    public function test_extraction_includes_processing_time(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1',
+            'method' => 'text',
+        ]);
+
+        $response->assertOk();
+        $this->assertArrayHasKey('processing_time_seconds', $response->json());
+        $this->assertIsNumeric($response->json('processing_time_seconds'));
+        $this->assertGreaterThanOrEqual(0, $response->json('processing_time_seconds'));
+    }
+
+    public function test_extract_with_ocr_method_uses_service_result(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $mock = Mockery::mock(PdfTextExtractor::class, [new Parser()])->makePartial();
+        $mock->shouldReceive('extractWithMethod')
+            ->once()
+            ->withArgs(function (string $path, array $pages, string $method, string $language) use ($book) {
+                $this->assertSame($book->getPdfPath(), $path);
+                $this->assertSame([1, 2], $pages);
+                $this->assertSame('ocr', $method);
+                $this->assertSame('eng+vie', $language);
+
+                return true;
+            })
+            ->andReturn([
+                'text' => 'Mocked OCR text',
+                'total_pages' => count($this->pageTexts),
+                'extracted_pages' => [1, 2],
+                'page_count' => 2,
+                'method_used' => 'ocr',
+                'extraction_details' => [
+                    'embedded_text_pages' => 0,
+                    'ocr_pages' => 2,
+                    'failed_pages' => 0,
+                ],
+                'processing_time_seconds' => 4.2,
+            ]);
+
+        app()->instance(PdfTextExtractor::class, $mock);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1,2',
+            'method' => 'ocr',
+            'language' => 'eng+vie',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'method_used' => 'ocr',
+                'extraction_details' => [
+                    'embedded_text_pages' => 0,
+                    'ocr_pages' => 2,
+                    'failed_pages' => 0,
+                ],
+            ]);
+        $this->assertSame('Mocked OCR text', $response->json('text'));
+        $this->assertSame(4.2, $response->json('processing_time_seconds'));
+    }
+
+    public function test_extract_with_combined_method_uses_service_result(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $mock = Mockery::mock(PdfTextExtractor::class, [new Parser()])->makePartial();
+        $mock->shouldReceive('extractWithMethod')
+            ->once()
+            ->withArgs(function (string $path, array $pages, string $method, string $language) use ($book) {
+                $this->assertSame($book->getPdfPath(), $path);
+                $this->assertSame([1, 2], $pages);
+                $this->assertSame('combined', $method);
+                $this->assertSame('vie', $language);
+
+                return true;
+            })
+            ->andReturn([
+                'text' => "Embedded text\n\nOCR text",
+                'total_pages' => count($this->pageTexts),
+                'extracted_pages' => [1, 2],
+                'page_count' => 2,
+                'method_used' => 'combined',
+                'extraction_details' => [
+                    'embedded_text_pages' => 1,
+                    'ocr_pages' => 1,
+                    'failed_pages' => 0,
+                ],
+                'processing_time_seconds' => 6.5,
+            ]);
+
+        app()->instance(PdfTextExtractor::class, $mock);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1-2',
+            'method' => 'combined',
+            'language' => 'vie',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'method_used' => 'combined',
+                'extraction_details' => [
+                    'embedded_text_pages' => 1,
+                    'ocr_pages' => 1,
+                    'failed_pages' => 0,
+                ],
+            ]);
+        $this->assertSame(6.5, $response->json('processing_time_seconds'));
+        $this->assertSame([1, 2], $response->json('extracted_pages'));
+    }
+
+    public function test_ocr_missing_dependency_returns_error(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $mock = Mockery::mock(PdfTextExtractor::class, [new Parser()])->makePartial();
+        $mock->shouldReceive('extractWithMethod')
+            ->once()
+            ->andThrow(new RuntimeException('OCR engine not available'));
+
+        app()->instance(PdfTextExtractor::class, $mock);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1',
+            'method' => 'ocr',
+        ]);
+
+        $response->assertStatus(500)
+            ->assertJson([
+                'success' => false,
+                'message' => 'OCR engine not available',
+            ]);
+    }
+
+    public function test_ocr_method_defaults_to_english_language(): void
+    {
+        $book = $this->createBookWithPdf();
+        $user = $this->createUserWithBook($book);
+
+        Sanctum::actingAs($user);
+
+        $mock = Mockery::mock(PdfTextExtractor::class, [new Parser()])->makePartial();
+        $mock->shouldReceive('extractWithMethod')
+            ->once()
+            ->withArgs(function (string $path, array $pages, string $method, string $language) use ($book) {
+                $this->assertSame($book->getPdfPath(), $path);
+                $this->assertSame([1], $pages);
+                $this->assertSame('ocr', $method);
+                $this->assertSame('eng', $language);
+
+                return true;
+            })
+            ->andReturn([
+                'text' => 'Mocked OCR text',
+                'total_pages' => count($this->pageTexts),
+                'extracted_pages' => [1],
+                'page_count' => 1,
+                'method_used' => 'ocr',
+                'extraction_details' => [
+                    'embedded_text_pages' => 0,
+                    'ocr_pages' => 1,
+                    'failed_pages' => 0,
+                ],
+                'processing_time_seconds' => 3.1,
+            ]);
+
+        app()->instance(PdfTextExtractor::class, $mock);
+
+        $response = $this->postJson("/api/books/{$book->id}/extract-text", [
+            'pages' => '1',
+            'method' => 'ocr',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'method_used' => 'ocr',
+            ]);
+        $this->assertSame(3.1, $response->json('processing_time_seconds'));
     }
 }
