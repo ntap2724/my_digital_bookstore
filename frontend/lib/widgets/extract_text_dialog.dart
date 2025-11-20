@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_flutter_app/l10n/app_localizations.dart';
+import 'package:my_flutter_app/models/extraction_method.dart';
+import 'package:my_flutter_app/models/extraction_options.dart';
 
 class ExtractTextDialog extends StatefulWidget {
   const ExtractTextDialog({super.key});
@@ -14,6 +16,8 @@ class _ExtractTextDialogState extends State<ExtractTextDialog> {
   final _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _errorText;
+  ExtractionMethod _method = ExtractionMethod.combined;
+  String _language = 'eng';
 
   @override
   void dispose() {
@@ -29,10 +33,8 @@ class _ExtractTextDialogState extends State<ExtractTextDialog> {
     final isMobile = screenWidth < 600;
 
     if (isMobile) {
-      // Show bottom sheet on mobile
       return _buildBottomSheet(context, t, theme);
     } else {
-      // Show dialog on tablet/desktop
       return _buildDialog(context, t, theme);
     }
   }
@@ -41,7 +43,7 @@ class _ExtractTextDialogState extends State<ExtractTextDialog> {
     return AlertDialog(
       title: Text(t.extractTextFromPdf),
       content: SizedBox(
-        width: 400,
+        width: 520,
         child: _buildContent(t, theme),
       ),
       actions: [
@@ -57,7 +59,11 @@ class _ExtractTextDialogState extends State<ExtractTextDialog> {
     );
   }
 
-  Widget _buildBottomSheet(BuildContext context, AppLocalizations t, ThemeData theme) {
+  Widget _buildBottomSheet(
+    BuildContext context,
+    AppLocalizations t,
+    ThemeData theme,
+  ) {
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
@@ -98,98 +104,248 @@ class _ExtractTextDialogState extends State<ExtractTextDialog> {
   }
 
   Widget _buildContent(AppLocalizations t, ThemeData theme) {
+    final helperStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // All pages option
-          InkWell(
-            onTap: () {
+          Text('📄 ${t.pages}', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 12),
+          _buildPageOptions(t),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _controller,
+            enabled: !_allPages,
+            decoration: InputDecoration(
+              labelText: t.pageSelection,
+              hintText: t.pageSelectionHint,
+              helperText: t.pageSelectionHelper,
+              helperMaxLines: 2,
+              errorText: _errorText,
+              border: const OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.text,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[\d,\s\-]')),
+              LengthLimitingTextInputFormatter(10000),
+            ],
+            onChanged: (value) {
               setState(() {
-                _allPages = true;
-                _errorText = null;
+                _errorText = _validatePageInput(value);
               });
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Radio<bool>(
-                    value: true,
-                    groupValue: _allPages,
-                    onChanged: (value) {
-                      setState(() {
-                        _allPages = value ?? true;
-                        _errorText = null;
-                      });
-                    },
+          ),
+          const SizedBox(height: 24),
+          Text('🔍 ${t.extractionMethod}', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 12),
+          _buildMethodOption(t, ExtractionMethod.text),
+          _buildMethodOption(t, ExtractionMethod.ocr),
+          _buildMethodOption(t, ExtractionMethod.combined),
+          const SizedBox(height: 24),
+          Text('🌐 ${t.ocrLanguage}', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          IgnorePointer(
+            ignoring: !_languageEnabled,
+            child: Opacity(
+              opacity: _languageEnabled ? 1 : 0.5,
+              child: DropdownButtonFormField<String>(
+                value: _language,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _language = value);
+                },
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  helperText: t.languageForOcr,
+                  helperMaxLines: 2,
+                  helperStyle: helperStyle,
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'eng',
+                    child: Text(t.englishLanguage),
                   ),
-                  const SizedBox(width: 8),
-                  Text(t.allPages),
+                  DropdownMenuItem(
+                    value: 'vie',
+                    child: Text(t.vietnameseLanguage),
+                  ),
+                  DropdownMenuItem(
+                    value: 'eng+vie',
+                    child: Text(t.englishVietnamese),
+                  ),
                 ],
               ),
             ),
           ),
-          // Specific pages option
-          InkWell(
-            onTap: () {
-              setState(() {
-                _allPages = false;
-                _errorText = null;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Radio<bool>(
-                    value: false,
-                    groupValue: _allPages,
-                    onChanged: (value) {
-                      setState(() {
-                        _allPages = value ?? true;
-                        _errorText = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Text(t.specificPages),
-                ],
-              ),
-            ),
-          ),
-          // Text field for page selection
-          if (!_allPages) ...[
-            const SizedBox(height: 8),
-            TextField(
-              controller: _controller,
-              enabled: !_allPages,
-              decoration: InputDecoration(
-                labelText: t.pageSelection,
-                hintText: t.pageSelectionHint,
-                helperText: t.pageSelectionHelper,
-                helperMaxLines: 2,
-                errorText: _errorText,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.text,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d,\s\-]')),
-                LengthLimitingTextInputFormatter(10000),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _errorText = _validatePageInput(value);
-                });
-              },
-            ),
-          ],
         ],
       ),
     );
   }
+
+  Widget _buildPageOptions(AppLocalizations t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              _allPages = true;
+              _errorText = null;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Radio<bool>(
+                  value: true,
+                  groupValue: _allPages,
+                  onChanged: (value) {
+                    setState(() {
+                      _allPages = value ?? true;
+                      _errorText = null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                Text(t.allPages),
+              ],
+            ),
+          ),
+        ),
+        InkWell(
+          onTap: () {
+            setState(() {
+              _allPages = false;
+              _errorText = null;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Radio<bool>(
+                  value: false,
+                  groupValue: _allPages,
+                  onChanged: (value) {
+                    setState(() {
+                      _allPages = value == true ? false : true;
+                      _errorText = null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                Text(t.specificPages),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMethodOption(AppLocalizations t, ExtractionMethod method) {
+    final theme = Theme.of(context);
+    final isSelected = _method == method;
+    final tooltip = method.getTooltip(context);
+    final icon = method.getIcon();
+    final titleStyle = theme.textTheme.bodyLarge?.copyWith(
+      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+    );
+
+    Widget label;
+    if (method == ExtractionMethod.combined) {
+      label = Row(
+        children: [
+          Expanded(
+            child: Text(
+              method.getDisplayName(context),
+              style: titleStyle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              t.recommended,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      label = Text(
+        method.getDisplayName(context),
+        style: titleStyle,
+      );
+    }
+
+    return InkWell(
+      onTap: () => _onMethodChanged(method),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Radio<ExtractionMethod>(
+              value: method,
+              groupValue: _method,
+              onChanged: (value) {
+                if (value != null) {
+                  _onMethodChanged(value);
+                }
+              },
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(icon, size: 20, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(child: label),
+                      Tooltip(
+                        message: tooltip,
+                        preferBelow: false,
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 8, top: 2),
+                          child: Icon(Icons.info_outline, size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tooltip,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool get _languageEnabled => _method != ExtractionMethod.text;
 
   bool get _canExtract {
     if (_allPages) return true;
@@ -200,45 +356,59 @@ class _ExtractTextDialogState extends State<ExtractTextDialog> {
 
   String? _validatePageInput(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return null; // Empty is valid (means all pages)
+      return null;
     }
 
-    // Check for allowed characters only
     final allowedPattern = RegExp(r'^[\d,\s\-]+$');
     if (!allowedPattern.hasMatch(value)) {
       return context.l10n.pageInputInvalid;
     }
 
-    return null; // Valid format, backend will do detailed validation
+    return null;
+  }
+
+  void _onMethodChanged(ExtractionMethod method) {
+    setState(() {
+      _method = method;
+      if (!_languageEnabled) {
+        _language = 'eng';
+      }
+    });
   }
 
   void _onExtract() {
-    if (_allPages) {
-      Navigator.of(context).pop(''); // Return empty string for all pages
-    } else {
+    if (!_allPages) {
       final pages = _controller.text.trim();
       if (pages.isEmpty || _validatePageInput(pages) != null) {
+        setState(() {
+          _errorText = _validatePageInput(pages);
+        });
         return;
       }
-      Navigator.of(context).pop(pages);
     }
+
+    final options = ExtractionOptions(
+      allPages: _allPages,
+      pageSelection: _controller.text.trim(),
+      method: _method,
+      languageCode: _language,
+    );
+    Navigator.of(context).pop(options);
   }
 }
 
-/// Show the extract text dialog/bottom sheet
-/// Returns the page selection string or null if cancelled
-Future<String?> showExtractTextDialog(BuildContext context) async {
+Future<ExtractionOptions?> showExtractTextDialog(BuildContext context) async {
   final screenWidth = MediaQuery.of(context).size.width;
   final isMobile = screenWidth < 600;
 
   if (isMobile) {
-    return showModalBottomSheet<String>(
+    return showModalBottomSheet<ExtractionOptions>(
       context: context,
       isScrollControlled: true,
       builder: (context) => const ExtractTextDialog(),
     );
   } else {
-    return showDialog<String>(
+    return showDialog<ExtractionOptions>(
       context: context,
       builder: (context) => const ExtractTextDialog(),
     );

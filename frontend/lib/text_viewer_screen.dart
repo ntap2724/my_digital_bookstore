@@ -97,6 +97,34 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    if (widget.extractedText.methodUsed != null) ...[
+                      Text(
+                        t.methodUsed(_formatMethod(widget.extractedText.methodUsed!)),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (widget.extractedText.extractionDetails != null) ...[
+                      Text(
+                        t.textPages(widget.extractedText.extractionDetails!.embeddedTextPages.toString()),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        t.ocrPagesShort(widget.extractedText.extractionDetails!.ocrPages.toString()),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (widget.extractedText.processingTimeSeconds != null) ...[
+                      Text(
+                        t.processingTime(widget.extractedText.processingTimeSeconds!.toStringAsFixed(1)),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     Text(
                       t.totalPagesLabel(widget.extractedText.totalPages.toString()),
                       style: theme.textTheme.bodyMedium,
@@ -146,6 +174,19 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     // Show first 10 and indicate more
     final first10 = pages.take(10).join(', ');
     return '$first10... (+${pages.length - 10} more)';
+  }
+
+  String _formatMethod(String method) {
+    switch (method) {
+      case 'text':
+        return context.l10n.fastTextExtraction;
+      case 'ocr':
+        return context.l10n.ocrScan;
+      case 'combined':
+        return context.l10n.smartExtraction;
+      default:
+        return method;
+    }
   }
 
   Future<void> _copyToClipboard() async {
